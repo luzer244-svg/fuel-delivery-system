@@ -130,11 +130,11 @@
     <div id="page-about" class="page">
         <h1>ℹ️ 系统信息</h1>
         <div class="card">
-            <p><strong>版本：</strong>v4.0 百度 OCR 版</p>
+            <p><strong>版本：</strong>v4.1 最终修复版</p>
             <p><strong>识别引擎：</strong>百度智能云 通用文字识别（高精度版）</p>
             <p><strong>AppID：</strong>122102244</p>
             <p><strong>数据存储：</strong>手机本地存储</p>
-            <p style="color:green; margin-top:10px">✅ 高精度识别，准确率 98%+</p>
+            <p style="color:green; margin-top:10px">✅ 已修复供应商和车牌号问题</p>
         </div>
     </div>
 
@@ -329,7 +329,7 @@
             }
         }
 
-        // ============ 解析 OCR 结果（修复版） ============
+        // ============ 解析 OCR 结果（最终修复版） ============
         function parseOCRResult(wordsList) {
             console.log('识别结果:', wordsList);
             
@@ -348,18 +348,34 @@
                 const text = item.words.trim();
                 console.log('处理:', text);
 
-                // 1. 供应商 - 去掉"供应商："前缀
+                // 1. 供应商 - 彻底清理前缀
                 if(text.includes('供应商')) {
-                    d.supplier = text.replace(/.*?供应商 [:：]?\s*/, '').trim();
+                    // 方法 1：如果包含冒号，取冒号后面的内容
+                    if(text.includes(':') || text.includes(':')) {
+                        d.supplier = text.split(/[:：]/)[1].trim();
+                    } else {
+                        // 方法 2：直接去掉"供应商"三个字
+                        d.supplier = text.replace('供应商', '').replace(':', '').replace(':', '').trim();
+                    }
                     console.log('匹配到供应商:', d.supplier);
                 }
 
-                // 2. 车牌号 - 专门匹配 湘 J+ 数字字母
-                if(text.includes('车牌') || text.match(/湘 [A-Z0-9]+/)) {
-                    const m = text.match(/湘 [A-Z0-9]{5,}/);
+                // 2. 车牌号 - 增强版匹配（支持多种格式）
+                if(text.includes('车牌')) {
+                    // 提取所有可能的车牌号码
+                    const matches = text.match(/湘[A-Z][A-Z0-9]{4,6}/g);
+                    if(matches && matches.length > 0) {
+                        d.plate = matches[0];
+                        console.log('匹配到车牌:', d.plate);
+                    }
+                }
+                
+                // 备用：如果没有找到"车牌"关键词，但找到了湘 J 开头的
+                if(!d.plate && text.match(/湘 J[A-Z0-9]{4,6}/)) {
+                    const m = text.match(/湘 J[A-Z0-9]{4,6}/);
                     if(m) {
                         d.plate = m[0];
-                        console.log('匹配到车牌:', d.plate);
+                        console.log('备用匹配到车牌:', d.plate);
                     }
                 }
 
@@ -375,7 +391,7 @@
                     }
                 }
 
-                // 4. 日期 - 支持多种格式 (YYYY/MM/DD 或 YYYY-MM-DD)
+                // 4. 日期 - 支持多种格式
                 if(text.includes('单号') || text.match(/\d{4}[-/]\d{2}[-/]\d{2}/)) {
                     let m = text.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
                     if(!m) {
@@ -387,7 +403,7 @@
                     }
                 }
 
-                // 5. 毛重 - 提取最后一个数字
+                // 5. 毛重
                 if(text.includes('毛重')) {
                     const nums = text.match(/(\d+\.?\d*)/g);
                     if(nums && nums.length > 0) {

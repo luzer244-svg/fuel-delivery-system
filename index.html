@@ -39,7 +39,7 @@
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; color: #666; }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 1000; display: none; }
-        .debug-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; display: none; }
+        .debug-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 11px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; display: none; }
         .debug-title { font-weight: bold; margin-bottom: 5px; color: #666; }
         .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 10px; }
         .status-ok { background: #d4edda; color: #155724; }
@@ -48,7 +48,6 @@
     </style>
 </head>
 <body>
-
 
     <div id="page-home" class="page active">
         <h1>📸 过磅单识别 (百度高精度)</h1>
@@ -66,7 +65,6 @@
             <div id="progress" class="progress"><div id="pBar" class="progress-bar"></div></div>
             <div id="statusText" class="status-text">准备就绪</div>
 
-
             <button id="btnRec" class="btn btn-success" style="display:none" onclick="startOCR()">🚀 开始百度 OCR 识别</button>
             <button class="btn btn-warning" onclick="enableManual()">✏️ 手动输入</button>
             
@@ -76,11 +74,10 @@
             </div>
         </div>
 
-
         <div id="formArea" class="card" style="display:none">
             <h3>📝 数据核对</h3>
             <div class="form-group"><label>供应商</label><input type="text" id="f_supplier" value="安乡县顺清秸秆综合利用专业合作社"></div>
-            <div class="form-group"><label>车牌号</label><input type="text" id="f_plate" placeholder="湘J..."></div>
+            <div class="form-group"><label>车牌号</label><input type="text" id="f_plate" placeholder="湘 J..."></div>
             <div class="form-group"><label>燃料种类</label>
                 <select id="f_fuel">
                     <option value="枝桠柴三级">枝桠柴三级</option>
@@ -103,13 +100,11 @@
                 <div class="form-group"><label>结算净重</label><input type="number" step="0.01" id="f_final" readonly style="background:#eee"></div>
             </div>
 
-
             <div class="form-group"><label>扣杂合计 (%)</label><input type="number" step="0.01" id="f_deduct" value="0" oninput="calc()"></div>
             
             <button class="btn btn-success" onclick="saveData()">✅ 确认保存</button>
         </div>
     </div>
-
 
     <div id="page-data" class="page">
         <h1>📊 历史记录</h1>
@@ -126,13 +121,11 @@
         <button class="btn btn-danger" style="margin-top:10px" onclick="clearData()">🗑️ 清空数据</button>
     </div>
 
-
     <div id="page-price" class="page">
         <h1>💰 价格管理</h1>
         <div class="card" id="priceBox"></div>
         <button class="btn btn-success" onclick="savePrice()">💾 保存价格</button>
     </div>
-
 
     <div id="page-about" class="page">
         <h1>ℹ️ 系统信息</h1>
@@ -145,7 +138,6 @@
         </div>
     </div>
 
-
     <div class="nav">
         <div class="nav-item active" onclick="sw('home',this)"><span class="nav-icon">🏠</span>首页</div>
         <div class="nav-item" onclick="sw('data',this)"><span class="nav-icon">📂</span>记录</div>
@@ -153,9 +145,7 @@
         <div class="nav-item" onclick="sw('about',this)"><span class="nav-icon">ℹ️</span>关于</div>
     </div>
 
-
     <div id="toast" class="toast">提示</div>
-
 
     <script>
         // ============ 百度 OCR 配置 ============
@@ -165,12 +155,10 @@
             secretKey: 'WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY'
         };
 
-
-        // CORS 代理列表 (多个备用)
+        // CORS 代理（使用你的 Cloudflare Worker）
         const PROXIES = [
             'https://baidu-ocr-proxy.luzer244.workers.dev/?url='
         ];
-
 
         // 价格和数据
         let prices = JSON.parse(localStorage.getItem('prices')) || [
@@ -184,14 +172,12 @@
         let accessToken = '';
         let tokenExpire = 0;
 
-
         window.onload = () => {
             document.getElementById('f_date').valueAsDate = new Date();
             renderPrice();
             renderList();
             initBaiduOCR();
         };
-
 
         function sw(id, el) {
             document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -202,13 +188,11 @@
             if(id==='price') renderPrice();
         }
 
-
         function toast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg; t.style.display='block';
             setTimeout(()=>t.style.display='none', 2000);
         }
-
 
         // ============ 百度 OCR 初始化 ============
         async function initBaiduOCR() {
@@ -224,17 +208,13 @@
             }
         }
 
-
         async function getAccessToken() {
-            // 检查缓存
             if(accessToken && Date.now() < tokenExpire) {
                 return accessToken;
             }
 
-
             const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU.apiKey}&client_secret=${BAIDU.secretKey}`;
             
-            // 尝试多个代理
             for(const proxy of PROXIES) {
                 try {
                     const res = await fetch(proxy + encodeURIComponent(url));
@@ -242,7 +222,7 @@
                     const data = await res.json();
                     if(data.access_token) {
                         accessToken = data.access_token;
-                        tokenExpire = Date.now() + (29 * 24 * 60 * 60 * 1000); // 29 天
+                        tokenExpire = Date.now() + (29 * 24 * 60 * 60 * 1000);
                         console.log('获取 Token 成功');
                         return accessToken;
                     }
@@ -253,7 +233,6 @@
             }
             throw new Error('所有代理均失败');
         }
-
 
         // ============ 图片处理 ============
         function handleFile(e) {
@@ -267,12 +246,10 @@
                 img.style.display = 'block';
                 document.getElementById('btnRec').style.display = 'block';
                 document.getElementById('debugBox').style.display = 'none';
-                // 提取 base64 (去掉 data:image/jpeg;base64, 前缀)
                 curImgBase64 = ev.target.result.split(',')[1];
             };
             r.readAsDataURL(f);
         }
-
 
         // ============ 开始 OCR 识别 ============
         async function startOCR() {
@@ -286,7 +263,6 @@
             const debugBox = document.getElementById('debugBox');
             const debugText = document.getElementById('debugText');
 
-
             btn.disabled = true;
             loader.style.display = 'block';
             progress.style.display = 'block';
@@ -295,40 +271,29 @@
             statusText.innerText = '正在获取认证...';
             debugText.innerText = '正在连接百度 OCR 服务...';
 
-
             try {
-                // 1. 获取 Token
                 await getAccessToken();
                 pBar.style.width = '40%';
                 statusText.innerText = '正在识别图片...';
 
-
-                // 2. 调用 OCR 接口
                 const ocrUrl = `https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=${accessToken}`;
                 let ocrResult = null;
 
-
                 for(const proxy of PROXIES) {
                     try {
-                        statusText.innerText = `尝试代理：${proxy.substring(0, 30)}...`;
+                        statusText.innerText = `尝试代理中...`;
                         const res = await fetch(proxy + encodeURIComponent(ocrUrl), {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                             body: `image=${encodeURIComponent(curImgBase64)}`
                         });
 
-
-                        if(!res.ok) {
-                            console.log('代理返回状态:', res.status);
-                            continue;
-                        }
-
+                        if(!res.ok) continue;
 
                         const data = await res.json();
                         if(data.error_code) {
                             throw new Error(data.error_msg || '识别失败');
                         }
-
 
                         ocrResult = data;
                         break;
@@ -338,22 +303,17 @@
                     }
                 }
 
-
                 if(!ocrResult) {
-                    throw new Error('所有代理均无法完成识别，请检查网络或稍后重试');
+                    throw new Error('所有代理均无法完成识别');
                 }
-
 
                 pBar.style.width = '100%';
                 statusText.innerText = '识别完成！';
                 debugText.innerText = JSON.stringify(ocrResult.words_result, null, 2);
 
-
-                // 3. 解析结果
                 parseOCRResult(ocrResult.words_result);
                 document.getElementById('formArea').style.display = 'block';
                 toast('✅ 识别成功，请核对数据');
-
 
             } catch(err) {
                 console.error(err);
@@ -369,145 +329,138 @@
             }
         }
 
-
         // ============ 解析 OCR 结果（修复版） ============
-function parseOCRResult(wordsList) {
-    console.log('识别结果:', wordsList);
-    
-    let d = { 
-        plate: '', 
-        net: '', 
-        gross: '', 
-        tare: '', 
-        fuel: '', 
-        date: '', 
-        supplier: '',
-        deduct: 0
-    };
-    
-    wordsList.forEach(item => {
-        const text = item.words.trim();
-        console.log('处理:', text);
+        function parseOCRResult(wordsList) {
+            console.log('识别结果:', wordsList);
+            
+            let d = { 
+                plate: '', 
+                net: '', 
+                gross: '', 
+                tare: '', 
+                fuel: '', 
+                date: '', 
+                supplier: '',
+                deduct: 0
+            };
+            
+            wordsList.forEach(item => {
+                const text = item.words.trim();
+                console.log('处理:', text);
 
-        // 1. 供应商 - 去掉"供应商："前缀
-        if(text.includes('供应商')) {
-            d.supplier = text.replace(/.*?供应商 [:：]?\s*/, '').trim();
-            console.log('匹配到供应商:', d.supplier);
-        }
-
-        // 2. 车牌号 - 专门匹配 湘 J+ 数字字母
-        if(text.includes('车牌') || text.match(/湘 [A-Z0-9]+/)) {
-            const m = text.match(/湘 [A-Z0-9]{5,}/);
-            if(m) {
-                d.plate = m[0];
-                console.log('匹配到车牌:', d.plate);
-            }
-        }
-
-        // 3. 燃料种类
-        if(text.includes('燃料种类') || text.includes('枝桠') || text.includes('杨树') || text.includes('杉木') || text.includes('树枝') || text.includes('薪柴') || text.includes('竹枝')) {
-            const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
-            for(const f of fuels) {
-                if(text.includes(f)) {
-                    d.fuel = f;
-                    console.log('匹配到燃料:', d.fuel);
-                    break;
+                // 1. 供应商 - 去掉"供应商："前缀
+                if(text.includes('供应商')) {
+                    d.supplier = text.replace(/.*?供应商 [:：]?\s*/, '').trim();
+                    console.log('匹配到供应商:', d.supplier);
                 }
-            }
-        }
 
-        // 4. 日期 - 支持多种格式 (YYYY/MM/DD 或 YYYY-MM-DD)
-        if(text.includes('单号') || text.match(/\d{4}[-/]\d{2}[-/]\d{2}/)) {
-            // 先尝试从单号提取
-            let m = text.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
-            if(!m) {
-                // 再尝试从其他位置提取日期
-                m = text.match(/(\d{4})(\d{2})(\d{2})/);
-            }
-            if(m) {
-                // 统一转换为 YYYY-MM-DD 格式
-                d.date = `${m[1]}-${m[2]}-${m[3]}`;
-                console.log('匹配到日期:', d.date);
-            }
-        }
+                // 2. 车牌号 - 专门匹配 湘 J+ 数字字母
+                if(text.includes('车牌') || text.match(/湘 [A-Z0-9]+/)) {
+                    const m = text.match(/湘 [A-Z0-9]{5,}/);
+                    if(m) {
+                        d.plate = m[0];
+                        console.log('匹配到车牌:', d.plate);
+                    }
+                }
 
-        // 5. 毛重 - 提取最后一个数字
-        if(text.includes('毛重')) {
-            const nums = text.match(/(\d+\.?\d*)/g);
-            if(nums && nums.length > 0) {
-                d.gross = parseFloat(nums[nums.length-1]);
-                console.log('匹配到毛重:', d.gross);
-            }
-        }
+                // 3. 燃料种类
+                if(text.includes('燃料种类') || text.includes('枝桠') || text.includes('杨树') || text.includes('杉木') || text.includes('树枝') || text.includes('薪柴') || text.includes('竹枝')) {
+                    const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
+                    for(const f of fuels) {
+                        if(text.includes(f)) {
+                            d.fuel = f;
+                            console.log('匹配到燃料:', d.fuel);
+                            break;
+                        }
+                    }
+                }
 
-        // 6. 皮重
-        if(text.includes('皮重')) {
-            const nums = text.match(/(\d+\.?\d*)/g);
-            if(nums && nums.length > 0) {
-                d.tare = parseFloat(nums[nums.length-1]);
-                console.log('匹配到皮重:', d.tare);
-            }
-        }
+                // 4. 日期 - 支持多种格式 (YYYY/MM/DD 或 YYYY-MM-DD)
+                if(text.includes('单号') || text.match(/\d{4}[-/]\d{2}[-/]\d{2}/)) {
+                    let m = text.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
+                    if(!m) {
+                        m = text.match(/(\d{4})(\d{2})(\d{2})/);
+                    }
+                    if(m) {
+                        d.date = `${m[1]}-${m[2]}-${m[3]}`;
+                        console.log('匹配到日期:', d.date);
+                    }
+                }
 
-        // 7. 净重
-        if(text.includes('净重')) {
-            const nums = text.match(/(\d+\.?\d*)/g);
-            if(nums && nums.length > 0) {
-                d.net = parseFloat(nums[nums.length-1]);
-                console.log('匹配到净重:', d.net);
-            }
-        }
+                // 5. 毛重 - 提取最后一个数字
+                if(text.includes('毛重')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        d.gross = parseFloat(nums[nums.length-1]);
+                        console.log('匹配到毛重:', d.gross);
+                    }
+                }
 
-        // 8. 扣杂质 - 提取百分比数值
-        if(text.includes('杂质') || text.includes('扣杂质')) {
-            const nums = text.match(/(\d+\.?\d*)/g);
-            if(nums && nums.length > 0) {
-                d.deduct += parseFloat(nums[nums.length-1]);
-                console.log('匹配到杂质:', nums[nums.length-1]);
-            }
-        }
-        
-        // 9. 扣霉腐
-        if(text.includes('霉腐') || text.includes('扣霉腐')) {
-            const nums = text.match(/(\d+\.?\d*)/g);
-            if(nums && nums.length > 0) {
-                d.deduct += parseFloat(nums[nums.length-1]);
-                console.log('匹配到霉腐:', nums[nums.length-1]);
-            }
-        }
-        
-        // 10. 扣长杆
-        if(text.includes('长杆') || text.includes('扣长杆')) {
-            const nums = text.match(/(\d+\.?\d*)/g);
-            if(nums && nums.length > 0) {
-                d.deduct += parseFloat(nums[nums.length-1]);
-                console.log('匹配到长杆:', nums[nums.length-1]);
-            }
-        }
-    });
+                // 6. 皮重
+                if(text.includes('皮重')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        d.tare = parseFloat(nums[nums.length-1]);
+                        console.log('匹配到皮重:', d.tare);
+                    }
+                }
 
-    // 填充表单
-    if(d.supplier) document.getElementById('f_supplier').value = d.supplier;
-    if(d.plate) document.getElementById('f_plate').value = d.plate;
-    if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
-    if(d.date) document.getElementById('f_date').value = d.date;
-    if(d.gross) document.getElementById('f_gross').value = d.gross.toFixed(2);
-    if(d.tare) document.getElementById('f_tare').value = d.tare.toFixed(2);
-    if(d.net) document.getElementById('f_net').value = d.net.toFixed(2);
-    if(d.deduct > 0) document.getElementById('f_deduct').value = d.deduct.toFixed(2);
-    
-    // 自动计算结算净重
-    calc();
-    
-    console.log('最终解析结果:', d);
-}
+                // 7. 净重
+                if(text.includes('净重')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        d.net = parseFloat(nums[nums.length-1]);
+                        console.log('匹配到净重:', d.net);
+                    }
+                }
 
+                // 8. 扣杂质
+                if(text.includes('杂质') || text.includes('扣杂质')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        d.deduct += parseFloat(nums[nums.length-1]);
+                        console.log('匹配到杂质:', nums[nums.length-1]);
+                    }
+                }
+                
+                // 9. 扣霉腐
+                if(text.includes('霉腐') || text.includes('扣霉腐')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        d.deduct += parseFloat(nums[nums.length-1]);
+                        console.log('匹配到霉腐:', nums[nums.length-1]);
+                    }
+                }
+                
+                // 10. 扣长杆
+                if(text.includes('长杆') || text.includes('扣长杆')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        d.deduct += parseFloat(nums[nums.length-1]);
+                        console.log('匹配到长杆:', nums[nums.length-1]);
+                    }
+                }
+            });
+
+            // 填充表单
+            if(d.supplier) document.getElementById('f_supplier').value = d.supplier;
+            if(d.plate) document.getElementById('f_plate').value = d.plate;
+            if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
+            if(d.date) document.getElementById('f_date').value = d.date;
+            if(d.gross) document.getElementById('f_gross').value = d.gross.toFixed(2);
+            if(d.tare) document.getElementById('f_tare').value = d.tare.toFixed(2);
+            if(d.net) document.getElementById('f_net').value = d.net.toFixed(2);
+            if(d.deduct > 0) document.getElementById('f_deduct').value = d.deduct.toFixed(2);
+            
+            calc();
+            
+            console.log('最终解析结果:', d);
+        }
 
         function enableManual() {
             document.getElementById('formArea').style.display = 'block';
             document.getElementById('debugBox').style.display = 'block';
         }
-
 
         function calc() {
             const net = parseFloat(document.getElementById('f_net').value) || 0;
@@ -516,18 +469,15 @@ function parseOCRResult(wordsList) {
             document.getElementById('f_final').value = final.toFixed(2);
         }
 
-
         function saveData() {
             const plate = document.getElementById('f_plate').value;
             const fuel = document.getElementById('f_fuel').value;
             const finalNet = parseFloat(document.getElementById('f_final').value);
             if(!plate || !finalNet) return alert('请填写完整数据');
 
-
             const priceObj = prices.find(x=>x.n===fuel) || {p:0};
             const unitPrice = parseFloat(prompt(`输入单价 (默认${priceObj.p}):`, priceObj.p));
             if(isNaN(unitPrice)) return;
-
 
             const isZheng = confirm("是郑老板的货吗？\n(是：扣除 50 元/吨 运费)");
             
@@ -541,7 +491,6 @@ function parseOCRResult(wordsList) {
                 total -= freight;
                 detail = `扣除运费 ${freight.toFixed(2)}元`;
             }
-
 
             const rec = {
                 date: document.getElementById('f_date').value,
@@ -560,7 +509,6 @@ function parseOCRResult(wordsList) {
             sw('data', document.querySelectorAll('.nav-item')[1]);
         }
 
-
         function renderList() {
             const key = document.getElementById('search').value.toLowerCase();
             const tbody = document.querySelector('#tbl tbody');
@@ -577,7 +525,6 @@ function parseOCRResult(wordsList) {
             });
         }
 
-
         function exportData() {
             if(!records.length) return alert('无数据');
             let csv = "日期，车牌，燃料，净重，总额，备注\n";
@@ -589,7 +536,6 @@ function parseOCRResult(wordsList) {
             a.click();
         }
 
-
         function clearData() {
             if(confirm('确定清空所有数据？')) {
                 records = [];
@@ -598,7 +544,6 @@ function parseOCRResult(wordsList) {
                 toast('已清空');
             }
         }
-
 
         function renderPrice() {
             const box = document.getElementById('priceBox');
@@ -613,7 +558,6 @@ function parseOCRResult(wordsList) {
             });
         }
 
-
         function savePrice() {
             const inputs = document.querySelectorAll('#priceBox input');
             inputs.forEach(inp => {
@@ -625,5 +569,3 @@ function parseOCRResult(wordsList) {
     </script>
 </body>
 </html>
-
-

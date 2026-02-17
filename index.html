@@ -135,7 +135,7 @@
         </div>
     </section>
 
-    <!-- PAGE 2: QUERY (增加供应商筛选) -->
+    <!-- PAGE 2: QUERY -->
     <section class="page-section hidden" id="page-query">
         <h2 class="text-2xl font-bold mb-4 text-gray-800 border-l-4 border-green-500 pl-3">数据查询</h2>
         <div class="bg-white p-3 rounded-lg shadow mb-4">
@@ -279,7 +279,12 @@
                 btn.classList.add('text-gray-500');
             }
         });
-        if(pageId === 'query') renderRecords();
+        
+        // 关键修复：切换到查询页时，重新填充燃料下拉框
+        if(pageId === 'query') {
+            populateFuelDatalist(); 
+            renderRecords();
+        }
         if(pageId === 'price') renderPriceList();
     }
 
@@ -289,17 +294,25 @@
         }
     }
 
+    // 填充表单和筛选器的下拉列表
     function populateFuelDatalist() {
         const list = document.getElementById('fuelTypeList');
         const filter = document.getElementById('filterFuel');
+        
+        // 清空现有内容
         list.innerHTML = '';
         filter.innerHTML = '<option value="">所有燃料</option>';
+        
         appState.prices.forEach(p => {
+            // 填充识别页面的 datalist
             const option = document.createElement('option');
             option.value = p.name;
             list.appendChild(option);
+            
+            // 填充查询页面的 select
             const filterOption = document.createElement('option');
             filterOption.value = p.name;
+            filterOption.textContent = p.name;
             filter.appendChild(filterOption);
         });
     }
@@ -427,58 +440,39 @@
         }
     }
 
-    // ================= 增强版解析逻辑 (修复车牌和日期) =================
+    // ================= 增强版解析逻辑 (严格单号提取日期) =================
     function parseOCRResults(wordsResult) {
         let fullText = wordsResult.map(item => item.words).join('\n');
         console.log('完整识别文本:', fullText);
         
-        // 1. 日期 - 多种格式匹配
+        // 1. 日期 - 【严格】只从单号前8位提取
         let dateStr = "";
-        
-        // 方法 1: 从单号提取 (YYYYMMDD)
         const serialMatch = fullText.match(/单号 [:：]?\s*(\d{8,14})/);
+        
         if (serialMatch && serialMatch[1]) {
+            // 取前8位
             const d = serialMatch[1].substring(0, 8);
+            // 格式化为 YYYY-MM-DD
             dateStr = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
-        }
-        
-        // 方法 2: 直接找日期格式 (YYYY-MM-DD 或 YYYY/MM/DD)
-        if (!dateStr) {
-            const dateMatch = fullText.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-            if (dateMatch) {
-                dateStr = `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}`;
-            }
-        }
-        
-        // 方法 3: 找"年"字格式
-        if (!dateStr) {
-            const yearMatch = fullText.match(/(\d{4}) 年 (\d{1,2}) 月 (\d{1,2}) 日/);
-            if (yearMatch) {
-                dateStr = `${yearMatch[1]}-${yearMatch[2].padStart(2,'0')}-${yearMatch[3].padStart(2,'0')}`;
-            }
-        }
-        
-        // 如果都没找到，用今天
-        if (!dateStr) {
-            setTodayDate();
-        } else {
             document.getElementById('date').value = dateStr;
+            console.log('从单号解析日期:', dateStr);
+        } else {
+            // 如果没找到单号，默认为今天
+            setTodayDate();
+            console.log('未找到单号，使用今天日期');
         }
-        console.log('解析日期:', dateStr);
 
         // 2. 供应商 - 彻底清理
         let supplierText = "";
         for (let item of wordsResult) {
             const text = item.words.trim();
             if (text.includes('供应商')) {
-                // 按冒号分割
                 if(text.includes(':') || text.includes('：')) {
                     const parts = text.split(/[:：]/);
                     supplierText = parts[parts.length - 1].trim();
                 } else {
                     supplierText = text.replace('供应商', '').trim();
                 }
-                // 清理所有标点
                 supplierText = supplierText.replace(/[:：\s]+/g, ' ').trim();
                 break;
             }
@@ -488,34 +482,19 @@
 
         // 3. 车牌号 - 增强匹配
         let plate = "";
-        
-        // 方法 1: 找"车牌"关键词所在行
         for (let item of wordsResult) {
             const text = item.words.trim();
             if (text.includes('车牌') || text.includes('车号')) {
-                // 匹配湘 J 开头的车牌
                 const m = text.match(/湘 [A-Z][A-Z0-9]{4,6}/);
-                if(m) {
-                    plate = m[0];
-                    break;
-                }
-                // 匹配任意省份车牌
+                if(m) { plate = m[0]; break; }
                 const m2 = text.match(/[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼][A-Z][A-Z0-9]{4,6}/);
-                if(m2) {
-                    plate = m2[0];
-                    break;
-                }
+                if(m2) { plate = m2[0]; break; }
             }
         }
-        
-        // 方法 2: 全文搜索车牌号
         if(!plate) {
             const plateMatch = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
-            if(plateMatch) {
-                plate = plateMatch[0];
-            }
+            if(plateMatch) plate = plateMatch[0];
         }
-        
         document.getElementById('plateNumber').value = plate;
         console.log('解析车牌:', plate);
         
@@ -524,9 +503,7 @@
             for (let item of wordsResult) {
                 if (item.words.includes(keyword)) {
                     const nums = item.words.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        return nums[nums.length - 1];
-                    }
+                    if(nums && nums.length > 0) return nums[nums.length - 1];
                 }
             }
             return "";
@@ -563,7 +540,6 @@
             }
         }
 
-        // 触发计算
         calculateNetWeight();
         calculateDeduction();
     }
@@ -650,7 +626,7 @@
         showToast("保存成功");
     }
 
-    // ================= 查询功能 (增加供应商筛选) =================
+    // ================= 查询功能 =================
     function renderRecords() {
         const container = document.getElementById('recordsList');
         const filterDate = document.getElementById('filterDate').value;

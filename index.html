@@ -440,110 +440,106 @@
         }
     }
 
-    // ================= 增强版解析逻辑 (严格单号提取日期) =================
-    function parseOCRResults(wordsResult) {
-        let fullText = wordsResult.map(item => item.words).join('\n');
-        console.log('完整识别文本:', fullText);
-        
-        // 1. 日期 - 【严格】只从单号前8位提取
-        let dateStr = "";
-        const serialMatch = fullText.match(/单号 [:：]?\s*(\d{8,14})/);
-        
-        if (serialMatch && serialMatch[1]) {
-            // 取前8位
-            const d = serialMatch[1].substring(0, 8);
-            // 格式化为 YYYY-MM-DD
+    // ================= 精准日期解析逻辑 =================
+function parseOCRResults(wordsResult) {
+    let fullText = wordsResult.map(item => item.words).join('\n');
+    console.log('完整识别文本:', fullText);
+    
+    // 1. 日期 - 【精准】从单号提取前 8 位
+    let dateStr = "";
+    
+    // 方法 1: 匹配"单号"后面的数字（宽松匹配）
+    const serialMatch = fullText.match(/单号 [^0-9]*(\d{8,14})/);
+    
+    if (serialMatch && serialMatch[1]) {
+        const d = serialMatch[1].substring(0, 8);
+        dateStr = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
+        document.getElementById('date').value = dateStr;
+        console.log('✅ 从单号解析日期:', dateStr, '原始单号:', serialMatch[1]);
+    } else {
+        // 方法 2: 全文搜索连续 8 位以上数字（备用）
+        const anyNumber = fullText.match(/(\d{8,14})/);
+        if (anyNumber && anyNumber[1]) {
+            const d = anyNumber[1].substring(0, 8);
             dateStr = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
             document.getElementById('date').value = dateStr;
-            console.log('从单号解析日期:', dateStr);
+            console.log('✅ 从全文数字解析日期:', dateStr, '原始数字:', anyNumber[1]);
         } else {
-            // 如果没找到单号，默认为今天
+            // 都没找到才用今天
             setTodayDate();
-            console.log('未找到单号，使用今天日期');
+            console.log('❌ 未找到单号，使用今天日期');
         }
-
-        // 2. 供应商 - 彻底清理
-        let supplierText = "";
-        for (let item of wordsResult) {
-            const text = item.words.trim();
-            if (text.includes('供应商')) {
-                if(text.includes(':') || text.includes('：')) {
-                    const parts = text.split(/[:：]/);
-                    supplierText = parts[parts.length - 1].trim();
-                } else {
-                    supplierText = text.replace('供应商', '').trim();
-                }
-                supplierText = supplierText.replace(/[:：\s]+/g, ' ').trim();
-                break;
-            }
-        }
-        document.getElementById('supplier').value = supplierText;
-        console.log('解析供应商:', supplierText);
-
-        // 3. 车牌号 - 增强匹配
-        let plate = "";
-        for (let item of wordsResult) {
-            const text = item.words.trim();
-            if (text.includes('车牌') || text.includes('车号')) {
-                const m = text.match(/湘 [A-Z][A-Z0-9]{4,6}/);
-                if(m) { plate = m[0]; break; }
-                const m2 = text.match(/[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼][A-Z][A-Z0-9]{4,6}/);
-                if(m2) { plate = m2[0]; break; }
-            }
-        }
-        if(!plate) {
-            const plateMatch = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
-            if(plateMatch) plate = plateMatch[0];
-        }
-        document.getElementById('plateNumber').value = plate;
-        console.log('解析车牌:', plate);
-        
-        // 4. 重量
-        const findNumber = (keyword) => {
-            for (let item of wordsResult) {
-                if (item.words.includes(keyword)) {
-                    const nums = item.words.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) return nums[nums.length - 1];
-                }
-            }
-            return "";
-        };
-        
-        const gross = findNumber("毛重");
-        const tare = findNumber("皮重");
-        const net = findNumber("净重");
-        
-        if(gross) document.getElementById('grossWeight').value = parseFloat(gross).toFixed(2);
-        if(tare) document.getElementById('tareWeight').value = parseFloat(tare).toFixed(2);
-        if(net) document.getElementById('netWeight').value = parseFloat(net).toFixed(2);
-
-        // 5. 扣杂
-        const impurity = findNumber("杂质") || findNumber("扣杂");
-        const rot = findNumber("霉腐") || findNumber("扣霉");
-        const long = findNumber("长杆") || findNumber("扣长");
-        
-        if(impurity) document.getElementById('deductImpurity').value = parseFloat(impurity).toFixed(2);
-        if(rot) document.getElementById('deductRot').value = parseFloat(rot).toFixed(2);
-        if(long) document.getElementById('deductLong').value = parseFloat(long).toFixed(2);
-
-        // 6. 燃料种类
-        const foundFuel = appState.prices.find(p => fullText.includes(p.name));
-        if(foundFuel) {
-            document.getElementById('fuelType').value = foundFuel.name;
-        } else {
-            const lines = fullText.split('\n');
-            for(let line of lines) {
-                if(line.includes("燃料") || line.includes("品名")) {
-                     document.getElementById('fuelType').value = line.replace(/燃料 | 品名|[:：]/g, "").trim();
-                     break;
-                }
-            }
-        }
-
-        calculateNetWeight();
-        calculateDeduction();
     }
 
+    // 2. 供应商
+    let supplierText = "";
+    for (let item of wordsResult) {
+        const text = item.words.trim();
+        if (text.includes('供应商')) {
+            if(text.includes(':') || text.includes('：')) {
+                const parts = text.split(/[:：]/);
+                supplierText = parts[parts.length - 1].trim();
+            } else {
+                supplierText = text.replace('供应商', '').trim();
+            }
+            supplierText = supplierText.replace(/[:：\s]+/g, ' ').trim();
+            break;
+        }
+    }
+    document.getElementById('supplier').value = supplierText;
+
+    // 3. 车牌号
+    let plate = "";
+    for (let item of wordsResult) {
+        const text = item.words.trim();
+        if (text.includes('车牌') || text.includes('车号')) {
+            const m = text.match(/湘 [A-Z][A-Z0-9]{4,6}/);
+            if(m) { plate = m[0]; break; }
+        }
+    }
+    if(!plate) {
+        const plateMatch = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
+        if(plateMatch) plate = plateMatch[0];
+    }
+    document.getElementById('plateNumber').value = plate;
+    
+    // 4. 重量
+    const findNumber = (keyword) => {
+        for (let item of wordsResult) {
+            if (item.words.includes(keyword)) {
+                const nums = item.words.match(/(\d+\.?\d*)/g);
+                if(nums && nums.length > 0) return nums[nums.length - 1];
+            }
+        }
+        return "";
+    };
+    
+    const gross = findNumber("毛重");
+    const tare = findNumber("皮重");
+    const net = findNumber("净重");
+    
+    if(gross) document.getElementById('grossWeight').value = parseFloat(gross).toFixed(2);
+    if(tare) document.getElementById('tareWeight').value = parseFloat(tare).toFixed(2);
+    if(net) document.getElementById('netWeight').value = parseFloat(net).toFixed(2);
+
+    // 5. 扣杂
+    const impurity = findNumber("杂质") || findNumber("扣杂");
+    const rot = findNumber("霉腐") || findNumber("扣霉");
+    const long = findNumber("长杆") || findNumber("扣长");
+    
+    if(impurity) document.getElementById('deductImpurity').value = parseFloat(impurity).toFixed(2);
+    if(rot) document.getElementById('deductRot').value = parseFloat(rot).toFixed(2);
+    if(long) document.getElementById('deductLong').value = parseFloat(long).toFixed(2);
+
+    // 6. 燃料种类
+    const foundFuel = appState.prices.find(p => fullText.includes(p.name));
+    if(foundFuel) {
+        document.getElementById('fuelType').value = foundFuel.name;
+    }
+
+    calculateNetWeight();
+    calculateDeduction();
+}
     // ================= 计算逻辑 =================
     function setTodayDate() {
         const today = new Date().toISOString().split('T')[0];

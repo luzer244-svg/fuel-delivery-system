@@ -1,587 +1,693 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>绿色能源货物交付系统 (百度 OCR 版)</title>
-    <style>
-        :root { --primary: #2c7be5; --success: #00d97e; --warning: #f6c343; --danger: #e63757; --bg: #f5f7fb; --card: #fff; --text: #12263f; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
-        body { background: var(--bg); color: var(--text); padding-bottom: 70px; }
-        .nav { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 999; }
-        .nav-item { text-align: center; font-size: 12px; color: #6e84a3; flex: 1; cursor: pointer; }
-        .nav-item.active { color: var(--primary); font-weight: bold; }
-        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
-        .page { display: none; padding: 15px; animation: fade 0.3s; }
-        .page.active { display: block; }
-        @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-        h1 { font-size: 22px; margin-bottom: 15px; color: var(--text); }
-        h3 { font-size: 18px; margin: 15px 0 10px; border-left: 4px solid var(--primary); padding-left: 10px; }
-        .card { background: var(--card); border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #d9e2ef; border-radius: 6px; font-size: 16px; }
-        input:focus { border-color: var(--primary); outline: none; }
-        .btn { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn:active { opacity: 0.9; }
-        .btn-success { background: var(--success); }
-        .btn-warning { background: var(--warning); color: #333; }
-        .btn-danger { background: var(--danger); }
-        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-        .upload-box { border: 2px dashed #d9e2ef; padding: 20px; text-align: center; border-radius: 8px; background: #fafbfc; cursor: pointer; }
-        #preview { max-width: 100%; margin-top: 10px; border-radius: 6px; display: none; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .progress { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin: 10px 0; display: none; overflow: hidden; }
-        .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s; }
-        .status-text { font-size: 12px; color: #666; text-align: center; margin-top: 5px; display: none; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; color: #666; }
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 1000; display: none; }
-        .debug-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 11px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; display: none; }
-        .debug-title { font-weight: bold; margin-bottom: 5px; color: #666; }
-        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 10px; }
-        .status-ok { background: #d4edda; color: #155724; }
-        .status-err { background: #f8d7da; color: #721c24; }
-        .status-warn { background: #fff3cd; color: #856404; }
-    </style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>燃料过磅单处理系统</title>
+<script src="https://image.uc.cn/s/uae/g/3n/mos-production/0915/3.4.17.js"></script>
+<script src="https://image.uc.cn/s/uae/g/3n/mos-production/fontawesome-free-7.1.0-web/js/all.min.js"></script>
+<link href="https://image.uc.cn/s/uae/g/3n/mos-production/fontawesome-free-7.1.0-web/css/fontawesome.min.css" rel="stylesheet"/>
+<script src="https://image.uc.cn/s/uae/g/3n/mos-production/cdn-staticfile-net/axios/1.6.7/axios.min.js"></script>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; padding-bottom: 80px; font-size: 16px; }
+    input, select, textarea { font-size: 16px !important; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 50; left: 50%; top: 30px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s, top 0.3s; }
+    #toast.show { visibility: visible; opacity: 1; top: 50px; }
+    #exportCanvas { display: none; }
+    .data-table th, .data-table td { padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    .data-table th { background-color: #f9fafb; font-weight: 600; }
+</style>
 </head>
 <body>
 
-    <div id="page-home" class="page active">
-        <h1>📸 过磅单识别 (百度高精度)</h1>
+<div id="toast">操作成功</div>
+
+<main class="p-4 max-w-4xl mx-auto">
+    <!-- PAGE 1: INDEX (Home / OCR) -->
+    <section class="page-section" id="page-home">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 border-l-4 border-blue-500 pl-3">过磅单识别</h2>
         
-        <div class="card">
-            <div id="apiStatus" class="status-badge status-warn">🔄 正在连接百度 OCR...</div>
-            
-            <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-                <p>📷 点击拍照或选择图片</p>
-                <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <label class="block text-gray-700 font-bold mb-2">上传过磅单图片</label>
+            <div class="flex gap-2">
+                <label class="flex-1 bg-blue-600 text-white text-center py-3 rounded-lg cursor-pointer hover:bg-blue-700 transition">
+                    <i class="fas fa-camera mr-2"></i>拍照
+                    <input accept="image/*" capture="environment" class="hidden" id="cameraInput" onchange="handleImageUpload(this)" type="file"/>
+                </label>
+                <label class="flex-1 bg-green-600 text-white text-center py-3 rounded-lg cursor-pointer hover:bg-green-700 transition">
+                    <i class="fas fa-image mr-2"></i>相册
+                    <input accept="image/*" class="hidden" id="galleryInput" onchange="handleImageUpload(this)" type="file"/>
+                </label>
             </div>
-            <img id="preview" alt="预览">
-            
-            <div id="loader" class="loader"></div>
-            <div id="progress" class="progress"><div id="pBar" class="progress-bar"></div></div>
-            <div id="statusText" class="status-text">准备就绪</div>
-
-            <button id="btnRec" class="btn btn-success" style="display:none" onclick="startOCR()">🚀 开始百度 OCR 识别</button>
-            <button class="btn btn-warning" onclick="enableManual()">✏️ 手动输入</button>
-            
-            <div id="debugBox" class="debug-box">
-                <div class="debug-title">📋 识别结果：</div>
-                <div id="debugText"></div>
+            <div class="mt-4 hidden" id="imagePreviewContainer">
+                <img alt="预览" class="w-full h-48 object-contain bg-gray-100 rounded border" id="imagePreview"/>
+                <p class="text-sm text-gray-500 mt-1 text-center">识别中...</p>
             </div>
         </div>
 
-        <div id="formArea" class="card" style="display:none">
-            <h3>📝 数据核对</h3>
-            <div class="form-group"><label>供应商</label><input type="text" id="f_supplier" value="安乡县顺清秸秆综合利用专业合作社"></div>
-            <div class="form-group"><label>车牌号</label><input type="text" id="f_plate" placeholder="湘 J..."></div>
-            <div class="form-group"><label>燃料种类</label>
-                <select id="f_fuel">
-                    <option value="枝桠柴三级">枝桠柴三级</option>
-                    <option value="杨树皮一级">杨树皮一级</option>
-                    <option value="杨树皮二级">杨树皮二级</option>
-                    <option value="杉木树枝一级">杉木树枝一级</option>
-                    <option value="杉木树枝二级">杉木树枝二级</option>
-                    <option value="干树枝一级">干树枝一级</option>
-                    <option value="干树枝二级">干树枝二级</option>
-                    <option value="带叶薪柴三级">带叶薪柴三级</option>
-                    <option value="竹枝">竹枝</option>
-                </select>
-            </div>
-            <div class="form-group"><label>日期</label><input type="date" id="f_date"></div>
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div class="form-group"><label>毛重</label><input type="number" step="0.01" id="f_gross" oninput="calc()"></div>
-                <div class="form-group"><label>皮重</label><input type="number" step="0.01" id="f_tare" oninput="calc()"></div>
-                <div class="form-group"><label>净重</label><input type="number" step="0.01" id="f_net" oninput="calc()"></div>
-                <div class="form-group"><label>结算净重</label><input type="number" step="0.01" id="f_final" readonly style="background:#eee"></div>
-            </div>
-
-            <div class="form-group"><label>扣杂合计 (%)</label><input type="number" step="0.01" id="f_deduct" value="0" oninput="calc()"></div>
-            
-            <button class="btn btn-success" onclick="saveData()">✅ 确认保存</button>
-        </div>
-    </div>
-
-    <div id="page-data" class="page">
-        <h1>📊 历史记录</h1>
-        <div class="card">
-            <input type="text" id="search" placeholder="搜索车牌/日期..." onkeyup="renderList()" style="margin-bottom:10px">
-            <div style="overflow-x:auto">
-                <table id="tbl">
-                    <thead><tr><th>日期</th><th>车牌</th><th>净重</th><th>总额</th><th>操作</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-        <button class="btn btn-outline" onclick="exportData()">📥 导出表格</button>
-        <button class="btn btn-danger" style="margin-top:10px" onclick="clearData()">🗑️ 清空数据</button>
-    </div>
-
-    <div id="page-price" class="page">
-        <h1>💰 价格管理</h1>
-        <div class="card" id="priceBox"></div>
-        <button class="btn btn-success" onclick="savePrice()">💾 保存价格</button>
-    </div>
-
-    <div id="page-about" class="page">
-        <h1>ℹ️ 系统信息</h1>
-        <div class="card">
-            <p><strong>版本：</strong>v4.1 最终修复版</p>
-            <p><strong>识别引擎：</strong>百度智能云 通用文字识别（高精度版）</p>
-            <p><strong>AppID：</strong>122102244</p>
-            <p><strong>数据存储：</strong>手机本地存储</p>
-            <p style="color:green; margin-top:10px">✅ 已修复供应商和车牌号问题</p>
-        </div>
-    </div>
-
-    <div class="nav">
-        <div class="nav-item active" onclick="sw('home',this)"><span class="nav-icon">🏠</span>首页</div>
-        <div class="nav-item" onclick="sw('data',this)"><span class="nav-icon">📂</span>记录</div>
-        <div class="nav-item" onclick="sw('price',this)"><span class="nav-icon">💲</span>价格</div>
-        <div class="nav-item" onclick="sw('about',this)"><span class="nav-icon">ℹ️</span>关于</div>
-    </div>
-
-    <div id="toast" class="toast">提示</div>
-
-    <script>
-        // ============ 百度 OCR 配置 ============
-        const BAIDU = {
-            appId: '122102244',
-            apiKey: 'NnrvJeOWeVcQ4vEdOWcT20q7',
-            secretKey: 'WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY'
-        };
-
-        // CORS 代理（使用你的 Cloudflare Worker）
-        const PROXIES = [
-            'https://baidu-ocr-proxy.luzer244.workers.dev/?url='
-        ];
-
-        // 价格和数据
-        let prices = JSON.parse(localStorage.getItem('prices')) || [
-            {n:"枝桠柴三级", p:202}, {n:"杨树皮一级", p:180}, {n:"杨树皮二级", p:247},
-            {n:"杉木树枝一级", p:202}, {n:"杉木树枝二级", p:242}, {n:"干树枝一级", p:298},
-            {n:"干树枝二级", p:240}, {n:"带叶薪柴三级", p:270}, {n:"竹枝", p:222}
-        ];
-        let records = JSON.parse(localStorage.getItem('records')) || [];
-        let curImg = null;
-        let curImgBase64 = null;
-        let accessToken = '';
-        let tokenExpire = 0;
-
-        window.onload = () => {
-            document.getElementById('f_date').valueAsDate = new Date();
-            renderPrice();
-            renderList();
-            initBaiduOCR();
-        };
-
-        function sw(id, el) {
-            document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-            document.getElementById('page-'+id).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-            if(el) el.classList.add('active');
-            if(id==='data') renderList();
-            if(id==='price') renderPrice();
-        }
-
-        function toast(msg) {
-            const t = document.getElementById('toast');
-            t.innerText = msg; t.style.display='block';
-            setTimeout(()=>t.style.display='none', 2000);
-        }
-
-        // ============ 百度 OCR 初始化 ============
-        async function initBaiduOCR() {
-            const statusEl = document.getElementById('apiStatus');
-            try {
-                await getAccessToken();
-                statusEl.className = 'status-badge status-ok';
-                statusEl.innerText = '✅ 百度 OCR 已就绪';
-            } catch(err) {
-                statusEl.className = 'status-badge status-err';
-                statusEl.innerText = '❌ 百度 OCR 连接失败';
-                console.error('初始化失败:', err);
-            }
-        }
-
-        async function getAccessToken() {
-            if(accessToken && Date.now() < tokenExpire) {
-                return accessToken;
-            }
-
-            const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU.apiKey}&client_secret=${BAIDU.secretKey}`;
-            
-            for(const proxy of PROXIES) {
-                try {
-                    const res = await fetch(proxy + encodeURIComponent(url));
-                    if(!res.ok) continue;
-                    const data = await res.json();
-                    if(data.access_token) {
-                        accessToken = data.access_token;
-                        tokenExpire = Date.now() + (29 * 24 * 60 * 60 * 1000);
-                        console.log('获取 Token 成功');
-                        return accessToken;
-                    }
-                } catch(e) {
-                    console.log('代理失败:', proxy, e.message);
-                    continue;
-                }
-            }
-            throw new Error('所有代理均失败');
-        }
-
-        // ============ 图片处理 ============
-        function handleFile(e) {
-            const f = e.target.files[0];
-            if(!f) return;
-            curImg = f;
-            const r = new FileReader();
-            r.onload = (ev) => {
-                const img = document.getElementById('preview');
-                img.src = ev.target.result;
-                img.style.display = 'block';
-                document.getElementById('btnRec').style.display = 'block';
-                document.getElementById('debugBox').style.display = 'none';
-                curImgBase64 = ev.target.result.split(',')[1];
-            };
-            r.readAsDataURL(f);
-        }
-
-        // ============ 开始 OCR 识别 ============
-        async function startOCR() {
-            if(!curImgBase64) return alert('请先选择图片');
-            
-            const btn = document.getElementById('btnRec');
-            const loader = document.getElementById('loader');
-            const progress = document.getElementById('progress');
-            const pBar = document.getElementById('pBar');
-            const statusText = document.getElementById('statusText');
-            const debugBox = document.getElementById('debugBox');
-            const debugText = document.getElementById('debugText');
-
-            btn.disabled = true;
-            loader.style.display = 'block';
-            progress.style.display = 'block';
-            debugBox.style.display = 'block';
-            pBar.style.width = '20%';
-            statusText.innerText = '正在获取认证...';
-            debugText.innerText = '正在连接百度 OCR 服务...';
-
-            try {
-                await getAccessToken();
-                pBar.style.width = '40%';
-                statusText.innerText = '正在识别图片...';
-
-                const ocrUrl = `https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=${accessToken}`;
-                let ocrResult = null;
-
-                for(const proxy of PROXIES) {
-                    try {
-                        statusText.innerText = `尝试代理中...`;
-                        const res = await fetch(proxy + encodeURIComponent(ocrUrl), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: `image=${encodeURIComponent(curImgBase64)}`
-                        });
-
-                        if(!res.ok) continue;
-
-                        const data = await res.json();
-                        if(data.error_code) {
-                            throw new Error(data.error_msg || '识别失败');
-                        }
-
-                        ocrResult = data;
-                        break;
-                    } catch(e) {
-                        console.log('代理失败:', proxy, e.message);
-                        continue;
-                    }
-                }
-
-                if(!ocrResult) {
-                    throw new Error('所有代理均无法完成识别');
-                }
-
-                pBar.style.width = '100%';
-                statusText.innerText = '识别完成！';
-                debugText.innerText = JSON.stringify(ocrResult.words_result, null, 2);
-
-                parseOCRResult(ocrResult.words_result);
-                document.getElementById('formArea').style.display = 'block';
-                toast('✅ 识别成功，请核对数据');
-
-            } catch(err) {
-                console.error(err);
-                statusText.innerText = '识别失败';
-                debugText.innerText = '错误：' + err.message;
-                alert('识别失败：' + err.message + '\n\n建议：\n1. 检查网络连接\n2. 稍后重试\n3. 使用手动输入');
-                enableManual();
-            } finally {
-                btn.disabled = false;
-                loader.style.display = 'none';
-                progress.style.display = 'none';
-                statusText.style.display = 'none';
-            }
-        }
-
-        // ============ 解析 OCR 结果（最终修复版） ============
-        function parseOCRResult(wordsList) {
-            console.log('识别结果:', wordsList);
-            
-            let d = { 
-                plate: '', 
-                net: '', 
-                gross: '', 
-                tare: '', 
-                fuel: '', 
-                date: '', 
-                supplier: '',
-                deduct: 0
-            };
-            
-            wordsList.forEach(item => {
-                const text = item.words.trim();
-                console.log('处理:', text);
-
-                // 1. 供应商 - 彻底清理前缀和标点
-                if(text.includes('供应商')) {
-                    // 先按冒号分割，取后面的内容
-                    let supplierText = text;
-                    if(text.includes(':') || text.includes('：')) {
-                        supplierText = text.split(/[:：]/)[1];
-                    }
-                    // 去掉"供应商"三个字和所有标点
-                    d.supplier = supplierText.replace(/供应商/g, '').replace(/[:：]/g, '').trim();
-                    console.log('匹配到供应商:', d.supplier);
-                }
-
-                // 2. 车牌号 - 增强版匹配（支持多种格式）
-                if(text.includes('车牌')) {
-                    // 提取所有可能的车牌号码
-                    const matches = text.match(/湘[A-Z][A-Z0-9]{4,6}/g);
-                    if(matches && matches.length > 0) {
-                        d.plate = matches[0];
-                        console.log('匹配到车牌:', d.plate);
-                    }
-                }
-                
-                // 备用：如果没有找到"车牌"关键词，但找到了湘 J 开头的
-                if(!d.plate && text.match(/湘 J[A-Z0-9]{4,6}/)) {
-                    const m = text.match(/湘 J[A-Z0-9]{4,6}/);
-                    if(m) {
-                        d.plate = m[0];
-                        console.log('备用匹配到车牌:', d.plate);
-                    }
-                }
-
-                // 3. 燃料种类
-                if(text.includes('燃料种类') || text.includes('枝桠') || text.includes('杨树') || text.includes('杉木') || text.includes('树枝') || text.includes('薪柴') || text.includes('竹枝')) {
-                    const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
-                    for(const f of fuels) {
-                        if(text.includes(f)) {
-                            d.fuel = f;
-                            console.log('匹配到燃料:', d.fuel);
-                            break;
-                        }
-                    }
-                }
-
-                // 4. 日期 - 支持多种格式
-                if(text.includes('单号') || text.match(/\d{4}[-/]\d{2}[-/]\d{2}/)) {
-                    let m = text.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
-                    if(!m) {
-                        m = text.match(/(\d{4})(\d{2})(\d{2})/);
-                    }
-                    if(m) {
-                        d.date = `${m[1]}-${m[2]}-${m[3]}`;
-                        console.log('匹配到日期:', d.date);
-                    }
-                }
-
-                // 5. 毛重
-                if(text.includes('毛重')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        d.gross = parseFloat(nums[nums.length-1]);
-                        console.log('匹配到毛重:', d.gross);
-                    }
-                }
-
-                // 6. 皮重
-                if(text.includes('皮重')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        d.tare = parseFloat(nums[nums.length-1]);
-                        console.log('匹配到皮重:', d.tare);
-                    }
-                }
-
-                // 7. 净重
-                if(text.includes('净重')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        d.net = parseFloat(nums[nums.length-1]);
-                        console.log('匹配到净重:', d.net);
-                    }
-                }
-
-                // 8. 扣杂质
-                if(text.includes('杂质') || text.includes('扣杂质')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        d.deduct += parseFloat(nums[nums.length-1]);
-                        console.log('匹配到杂质:', nums[nums.length-1]);
-                    }
-                }
-                
-                // 9. 扣霉腐
-                if(text.includes('霉腐') || text.includes('扣霉腐')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        d.deduct += parseFloat(nums[nums.length-1]);
-                        console.log('匹配到霉腐:', nums[nums.length-1]);
-                    }
-                }
-                
-                // 10. 扣长杆
-                if(text.includes('长杆') || text.includes('扣长杆')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) {
-                        d.deduct += parseFloat(nums[nums.length-1]);
-                        console.log('匹配到长杆:', nums[nums.length-1]);
-                    }
-                }
-            });
-
-            // 填充表单
-            if(d.supplier) document.getElementById('f_supplier').value = d.supplier;
-            if(d.plate) document.getElementById('f_plate').value = d.plate;
-            if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
-            if(d.date) document.getElementById('f_date').value = d.date;
-            if(d.gross) document.getElementById('f_gross').value = d.gross.toFixed(2);
-            if(d.tare) document.getElementById('f_tare').value = d.tare.toFixed(2);
-            if(d.net) document.getElementById('f_net').value = d.net.toFixed(2);
-            if(d.deduct > 0) document.getElementById('f_deduct').value = d.deduct.toFixed(2);
-            
-            calc();
-            
-            console.log('最终解析结果:', d);
-        }
-
-        function enableManual() {
-            document.getElementById('formArea').style.display = 'block';
-            document.getElementById('debugBox').style.display = 'block';
-        }
-
-        function calc() {
-            const net = parseFloat(document.getElementById('f_net').value) || 0;
-            const ded = parseFloat(document.getElementById('f_deduct').value) || 0;
-            const final = net * (1 - ded/100);
-            document.getElementById('f_final').value = final.toFixed(2);
-        }
-
-        function saveData() {
-            const plate = document.getElementById('f_plate').value;
-            const fuel = document.getElementById('f_fuel').value;
-            const finalNet = parseFloat(document.getElementById('f_final').value);
-            if(!plate || !finalNet) return alert('请填写完整数据');
-
-            const priceObj = prices.find(x=>x.n===fuel) || {p:0};
-            const unitPrice = parseFloat(prompt(`输入单价 (默认${priceObj.p}):`, priceObj.p));
-            if(isNaN(unitPrice)) return;
-
-            const isZheng = confirm("是郑老板的货吗？\n(是：扣除 50 元/吨 运费)");
-            
-            let total = finalNet * unitPrice;
-            let freight = 0;
-            let detail = `正常结算`;
-            
-            if(isZheng) {
-                const rawNet = parseFloat(document.getElementById('f_net').value) || 0;
-                freight = rawNet * 50;
-                total -= freight;
-                detail = `扣除运费 ${freight.toFixed(2)}元`;
-            }
-
-            const rec = {
-                date: document.getElementById('f_date').value,
-                plate, fuel, net: finalNet, total, detail, time: Date.now()
-            };
-            records.unshift(rec);
-            localStorage.setItem('records', JSON.stringify(records));
-            
-            toast('保存成功');
-            document.getElementById('formArea').style.display = 'none';
-            document.getElementById('preview').style.display = 'none';
-            document.getElementById('btnRec').style.display = 'none';
-            document.querySelector('.upload-box').style.display = 'block';
-            document.getElementById('f_plate').value = '';
-            document.getElementById('f_net').value = '';
-            sw('data', document.querySelectorAll('.nav-item')[1]);
-        }
-
-        function renderList() {
-            const key = document.getElementById('search').value.toLowerCase();
-            const tbody = document.querySelector('#tbl tbody');
-            tbody.innerHTML = '';
-            records.filter(r => r.plate.toLowerCase().includes(key) || r.date.includes(key)).forEach(r => {
-                const tr = `<tr>
-                    <td>${r.date}</td>
-                    <td>${r.plate}</td>
-                    <td>${r.net.toFixed(2)}</td>
-                    <td style="color:${r.total<0?'red':'green'}">¥${r.total.toFixed(2)}</td>
-                    <td><button onclick="alert('${r.detail}\n总额：${r.total.toFixed(2)}')" style="border:none;background:none;color:blue">详情</button></td>
-                </tr>`;
-                tbody.innerHTML += tr;
-            });
-        }
-
-        function exportData() {
-            if(!records.length) return alert('无数据');
-            let csv = "日期，车牌，燃料，净重，总额，备注\n";
-            records.forEach(r => csv += `${r.date},${r.plate},${r.fuel},${r.net},${r.total},${r.detail}\n`);
-            const blob = new Blob(["\ufeff"+csv], {type:'text/csv'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `数据_${new Date().toLocaleDateString()}.csv`;
-            a.click();
-        }
-
-        function clearData() {
-            if(confirm('确定清空所有数据？')) {
-                records = [];
-                localStorage.removeItem('records');
-                renderList();
-                toast('已清空');
-            }
-        }
-
-        function renderPrice() {
-            const box = document.getElementById('priceBox');
-            box.innerHTML = '';
-            prices.forEach((item, i) => {
-                box.innerHTML += `
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-                        <span>${item.n}</span>
-                        <input type="number" value="${item.p}" data-i="${i}" style="width:80px;padding:4px">
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h3 class="text-lg font-bold mb-3 text-gray-700">识别结果核对</h3>
+            <form class="space-y-3" id="ocrForm">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">供应商</label>
+                        <input class="w-full border rounded p-2 bg-gray-50" id="supplier" placeholder="供应商名称" type="text"/>
                     </div>
-                `;
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">车牌号</label>
+                        <input class="w-full border rounded p-2 bg-gray-50" id="plateNumber" placeholder="湘 Jxxxxx" type="text"/>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">燃料种类</label>
+                        <input class="w-full border rounded p-2 bg-gray-50" id="fuelType" list="fuelTypeList" type="text"/>
+                        <datalist id="fuelTypeList"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">日期</label>
+                        <input class="w-full border rounded p-2 bg-gray-50" id="date" type="date"/>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">毛重 (吨)</label>
+                        <input class="w-full border rounded p-2 bg-gray-50" id="grossWeight" onchange="calculateNetWeight()" step="0.01" type="number"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">皮重 (吨)</label>
+                        <input class="w-full border rounded p-2 bg-gray-50" id="tareWeight" onchange="calculateNetWeight()" step="0.01" type="number"/>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">净重 (吨)</label>
+                        <input class="w-full border rounded p-2 bg-blue-50 font-bold text-blue-800" id="netWeight" readonly="" step="0.01" type="number"/>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded border">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">货物扣除率 (%)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-500">杂质</label>
+                            <input class="w-full border rounded p-1 text-sm" id="deductImpurity" onchange="calculateDeduction()" step="0.01" type="number" value="0.00"/>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">霉腐</label>
+                            <input class="w-full border rounded p-1 text-sm" id="deductRot" onchange="calculateDeduction()" step="0.01" type="number" value="0.00"/>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">长杆</label>
+                            <input class="w-full border rounded p-1 text-sm" id="deductLong" onchange="calculateDeduction()" step="0.01" type="number" value="0.00"/>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex justify-between items-center">
+                        <span class="text-sm text-gray-600">扣后重量:</span>
+                        <span class="font-bold text-lg" id="finalWeightDisplay">0.00</span> 吨
+                    </div>
+                </div>
+                <div class="border-t pt-3 mt-3">
+                    <div class="flex items-center mb-3">
+                        <input class="w-5 h-5 text-blue-600 rounded mr-2" id="isZhengBoss" onchange="updateCalculations()" type="checkbox"/>
+                        <label class="text-lg font-bold text-gray-800" for="isZhengBoss">是否为郑老板的货物？</label>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">本次货款价格 (元/吨) <span class="text-red-500">*</span></label>
+                        <input class="w-full border rounded p-2 bg-yellow-50 text-lg font-bold" id="userPrice" oninput="updateCalculations()" placeholder="输入价格" step="0.01" type="number"/>
+                    </div>
+                    <div class="mt-4 bg-blue-50 p-3 rounded border border-blue-100">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-gray-600">运费 (郑老板):</span>
+                            <span class="font-bold" id="freightDisplay">0.00</span> 元
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-800 font-bold text-lg">付款总额:</span>
+                            <span class="font-bold text-xl text-blue-700" id="totalPaymentDisplay">0.00</span> 元
+                        </div>
+                    </div>
+                </div>
+                <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg mt-4 shadow hover:bg-blue-700 active:bg-blue-800 transition" onclick="saveRecord()" type="button">
+                    <i class="fas fa-save mr-2"></i>确认保存
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- PAGE 2: QUERY -->
+    <section class="page-section hidden" id="page-query">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 border-l-4 border-green-500 pl-3">数据查询</h2>
+        <div class="bg-white p-3 rounded-lg shadow mb-4 flex gap-2">
+            <input class="border rounded p-2 flex-1" id="filterDate" onchange="renderRecords()" type="date"/>
+            <select class="border rounded p-2 flex-1" id="filterFuel" onchange="renderRecords()">
+                <option value="">所有燃料</option>
+            </select>
+        </div>
+        <div class="space-y-4" id="recordsList">
+            <div class="text-center text-gray-400 mt-10">暂无数据</div>
+        </div>
+    </section>
+
+    <!-- PAGE 3: PRICE -->
+    <section class="page-section hidden" id="page-price">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 border-l-4 border-yellow-500 pl-3">货款价格管理</h2>
+        <div class="bg-white p-4 rounded-lg shadow mb-6">
+            <h3 class="text-lg font-bold mb-3">添加/更新价格</h3>
+            <div class="flex gap-2">
+                <input class="border rounded p-2 flex-2" id="newPriceName" placeholder="燃料种类名称" type="text"/>
+                <input class="border rounded p-2 flex-1" id="newPriceValue" placeholder="价格" step="0.01" type="number"/>
+                <button class="bg-yellow-500 text-white px-4 rounded font-bold hover:bg-yellow-600" onclick="addOrUpdatePrice()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="p-3 border-b">燃料种类</th>
+                        <th class="p-3 border-b">价格 (元/吨)</th>
+                        <th class="p-3 border-b text-right">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="priceListBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- PAGE 4: AUTH -->
+    <section class="page-section hidden" id="page-auth">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800 border-l-4 border-purple-500 pl-3">认证信息</h2>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <div class="mb-6">
+                <label class="block text-gray-500 text-sm font-bold mb-2">App ID</label>
+                <div class="text-2xl font-mono bg-gray-100 p-3 rounded break-all">122102244</div>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-500 text-sm font-bold mb-2">API Key</label>
+                <div class="text-xl font-mono bg-gray-100 p-3 rounded break-all text-blue-700">NnrvJeOWeVcQ4vEdOWcT20q7</div>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-500 text-sm font-bold mb-2">Secret Key</label>
+                <div class="text-xl font-mono bg-gray-100 p-3 rounded break-all text-red-700">WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY</div>
+            </div>
+            <div class="text-center text-gray-400 text-sm mt-8">
+                <i class="fas fa-lock"></i> 信息仅供查看，不可修改
+            </div>
+        </div>
+    </section>
+</main>
+
+<nav class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-lg z-40">
+    <div class="flex justify-around items-center h-16">
+        <button class="nav-btn flex-1 flex flex-col items-center justify-center text-blue-600" data-target="home" onclick="navTo('home')">
+            <i class="fas fa-camera text-xl mb-1"></i>
+            <span class="text-xs font-bold">识别</span>
+        </button>
+        <button class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-500" data-target="query" onclick="navTo('query')">
+            <i class="fas fa-list-alt text-xl mb-1"></i>
+            <span class="text-xs font-bold">查询</span>
+        </button>
+        <button class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-500" data-target="price" onclick="navTo('price')">
+            <i class="fas fa-tags text-xl mb-1"></i>
+            <span class="text-xs font-bold">价格</span>
+        </button>
+        <button class="nav-btn flex-1 flex flex-col items-center justify-center text-gray-500" data-target="auth" onclick="navTo('auth')">
+            <i class="fas fa-key text-xl mb-1"></i>
+            <span class="text-xs font-bold">认证</span>
+        </button>
+    </div>
+</nav>
+
+<canvas id="exportCanvas"></canvas>
+
+<script>
+    const BAIDU_OCR_CONFIG = {
+        appId: '122102244',
+        apiKey: 'NnrvJeOWeVcQ4vEdOWcT20q7',
+        secretKey: 'WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY',
+        tokenUrl: 'https://aip.baidubce.com/oauth/2.0/token',
+        ocrUrl: 'https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic'
+    };
+
+    const DEFAULT_PRICES = [
+        { name: "带叶薪柴三级", price: 270.00 },
+        { name: "干树枝二级", price: 240.00 },
+        { name: "干树枝一级", price: 298.00 },
+        { name: "杉木树枝二级", price: 242.00 },
+        { name: "杉木树枝一级", price: 202.00 },
+        { name: "杨树皮二级", price: 247.00 },
+        { name: "杨树皮一级", price: 180.00 },
+        { name: "枝桠柴三级", price: 202.00 },
+        { name: "竹枝", price: 222.00 }
+    ];
+
+    let appState = {
+        accessToken: localStorage.getItem('baidu_token') || null,
+        tokenExpiry: localStorage.getItem('baidu_token_expiry') || 0,
+        prices: JSON.parse(localStorage.getItem('fuel_prices')) || DEFAULT_PRICES,
+        records: JSON.parse(localStorage.getItem('weighbridge_records')) || []
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initPrices();
+        populateFuelDatalist();
+        setTodayDate();
+    });
+
+    function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "show";
+        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+    }
+
+    function navTo(pageId) {
+        document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`page-${pageId}`).classList.remove('hidden');
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            if(btn.dataset.target === pageId) {
+                btn.classList.add('text-blue-600');
+                btn.classList.remove('text-gray-500');
+            } else {
+                btn.classList.remove('text-blue-600');
+                btn.classList.add('text-gray-500');
+            }
+        });
+        if(pageId === 'query') renderRecords();
+        if(pageId === 'price') renderPriceList();
+    }
+
+    function initPrices() {
+        if (!localStorage.getItem('fuel_prices')) {
+            localStorage.setItem('fuel_prices', JSON.stringify(DEFAULT_PRICES));
+        }
+    }
+
+    function populateFuelDatalist() {
+        const list = document.getElementById('fuelTypeList');
+        const filter = document.getElementById('filterFuel');
+        list.innerHTML = '';
+        filter.innerHTML = '<option value="">所有燃料</option>';
+        appState.prices.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.name;
+            list.appendChild(option);
+            const filterOption = document.createElement('option');
+            filterOption.value = p.name;
+            filter.appendChild(filterOption);
+        });
+    }
+
+    function renderPriceList() {
+        const tbody = document.getElementById('priceListBody');
+        tbody.innerHTML = '';
+        appState.prices.forEach((p, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-3 border-b">${p.name}</td>
+                <td class="p-3 border-b font-mono">${parseFloat(p.price).toFixed(2)}</td>
+                <td class="p-3 border-b text-right">
+                    <button onclick="deletePrice(${index})" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function addOrUpdatePrice() {
+        const name = document.getElementById('newPriceName').value.trim();
+        const price = parseFloat(document.getElementById('newPriceValue').value);
+        if (!name || isNaN(price)) {
+            showToast("请输入有效的名称和价格");
+            return;
+        }
+        const existingIndex = appState.prices.findIndex(p => p.name === name);
+        if (existingIndex >= 0) {
+            appState.prices[existingIndex].price = price;
+            showToast("价格已更新");
+        } else {
+            appState.prices.push({ name, price });
+            showToast("新价格已添加");
+        }
+        localStorage.setItem('fuel_prices', JSON.stringify(appState.prices));
+        document.getElementById('newPriceName').value = '';
+        document.getElementById('newPriceValue').value = '';
+        renderPriceList();
+        populateFuelDatalist();
+    }
+
+    function deletePrice(index) {
+        if(confirm("确定删除此价格条目吗？")) {
+            appState.prices.splice(index, 1);
+            localStorage.setItem('fuel_prices', JSON.stringify(appState.prices));
+            renderPriceList();
+            populateFuelDatalist();
+        }
+    }
+
+    async function getAccessToken() {
+        const now = Date.now();
+        if (appState.accessToken && now < appState.tokenExpiry) {
+            return appState.accessToken;
+        }
+        try {
+            const response = await axios.post(BAIDU_OCR_CONFIG.tokenUrl, null, {
+                params: {
+                    grant_type: 'client_credentials',
+                    client_id: BAIDU_OCR_CONFIG.apiKey,
+                    client_secret: BAIDU_OCR_CONFIG.secretKey
+                }
             });
+            appState.accessToken = response.data.access_token;
+            appState.tokenExpiry = now + (response.data.expires_in - 300) * 1000;
+            localStorage.setItem('baidu_token', appState.accessToken);
+            localStorage.setItem('baidu_token_expiry', appState.tokenExpiry);
+            return appState.accessToken;
+        } catch (error) {
+            console.error("Token Error:", error);
+            showToast("获取认证 Token 失败");
+            return null;
+        }
+    }
+
+    function handleImageUpload(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                performOCR(e.target.result.split(',')[1]);
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function performOCR(base64Image) {
+        const token = await getAccessToken();
+        if (!token) return;
+        try {
+            const formData = new FormData();
+            formData.append('image', base64Image);
+            const response = await axios.post(`${BAIDU_OCR_CONFIG.ocrUrl}?access_token=${token}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            parseOCRResults(response.data.words_result);
+            showToast("识别完成，请核对");
+        } catch (error) {
+            console.error("OCR Error:", error);
+            showToast("识别失败，请重试");
+        }
+    }
+
+    // ============ 修复供应商解析 ============
+    function parseOCRResults(wordsResult) {
+        let fullText = wordsResult.map(item => item.words).join('\n');
+        
+        const findValue = (keyword, regex = /\d+\.?\d*/) => {
+            for (let item of wordsResult) {
+                if (item.words.includes(keyword)) {
+                    const match = item.words.match(regex);
+                    if (match) return match[0];
+                }
+            }
+            for (let i = 0; i < wordsResult.length - 1; i++) {
+                if (wordsResult[i].words.includes(keyword)) {
+                    const match = wordsResult[i+1].words.match(regex);
+                    if (match) return match[0];
+                }
+            }
+            return "";
+        };
+
+        // 日期
+        const serialMatch = fullText.match(/单号 [:：]?\s*(\d{8}\d*)/);
+        let dateStr = "";
+        if (serialMatch && serialMatch[1]) {
+            dateStr = serialMatch[1].substring(0, 8);
+            dateStr = `${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`;
+        } else {
+            setTodayDate();
+        }
+        document.getElementById('date').value = dateStr;
+
+        // 供应商 - 修复：彻底清理冒号和前缀
+        let supplierText = "";
+        for (let item of wordsResult) {
+            if (item.words.includes('供应商')) {
+                // 按冒号分割，取后面内容
+                if(item.words.includes(':') || item.words.includes('：')) {
+                    supplierText = item.words.split(/[:：]/)[1];
+                } else {
+                    supplierText = item.words.replace('供应商', '');
+                }
+                // 清理所有标点符号和空格
+                supplierText = supplierText.replace(/[:：]/g, '').replace(/\s+/g, ' ').trim();
+                break;
+            }
+        }
+        document.getElementById('supplier').value = supplierText;
+
+        // 车牌号
+        document.getElementById('plateNumber').value = findValue("车牌", /[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-Z0-9]{4,6}/);
+        
+        // 重量
+        const gross = findValue("毛重");
+        const tare = findValue("皮重");
+        const net = findValue("净重");
+        if(gross) document.getElementById('grossWeight').value = parseFloat(gross).toFixed(2);
+        if(tare) document.getElementById('tareWeight').value = parseFloat(tare).toFixed(2);
+        if(net) document.getElementById('netWeight').value = parseFloat(net).toFixed(2);
+
+        // 扣杂
+        const impurity = findValue("杂质") || findValue("扣杂");
+        const rot = findValue("霉腐") || findValue("扣霉");
+        const long = findValue("长杆") || findValue("扣长");
+        if(impurity) document.getElementById('deductImpurity').value = parseFloat(impurity).toFixed(2);
+        if(rot) document.getElementById('deductRot').value = parseFloat(rot).toFixed(2);
+        if(long) document.getElementById('deductLong').value = parseFloat(long).toFixed(2);
+
+        // 燃料种类
+        const foundFuel = appState.prices.find(p => fullText.includes(p.name));
+        if(foundFuel) {
+            document.getElementById('fuelType').value = foundFuel.name;
+        } else {
+            const lines = fullText.split('\n');
+            for(let line of lines) {
+                if(line.includes("燃料") || line.includes("品名")) {
+                     document.getElementById('fuelType').value = line.replace(/燃料 | 品名|[:：]/g, "").trim();
+                     break;
+                }
+            }
         }
 
-        function savePrice() {
-            const inputs = document.querySelectorAll('#priceBox input');
-            inputs.forEach(inp => {
-                prices[inp.dataset.i].p = parseFloat(inp.value);
-            });
-            localStorage.setItem('prices', JSON.stringify(prices));
-            toast('价格已更新');
+        calculateNetWeight();
+        calculateDeduction();
+    }
+
+    function setTodayDate() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('date').value = today;
+    }
+
+    function calculateNetWeight() {
+        const gross = parseFloat(document.getElementById('grossWeight').value) || 0;
+        const tare = parseFloat(document.getElementById('tareWeight').value) || 0;
+        const net = gross - tare;
+        document.getElementById('netWeight').value = net.toFixed(2);
+        calculateDeduction();
+        updateCalculations();
+    }
+
+    function calculateDeduction() {
+        const net = parseFloat(document.getElementById('netWeight').value) || 0;
+        const pImp = parseFloat(document.getElementById('deductImpurity').value) || 0;
+        const pRot = parseFloat(document.getElementById('deductRot').value) || 0;
+        const pLong = parseFloat(document.getElementById('deductLong').value) || 0;
+        const totalDeductionRate = pImp + pRot + pLong;
+        const deductionWeight = net * (totalDeductionRate / 100);
+        const finalWeight = net - deductionWeight;
+        document.getElementById('finalWeightDisplay').innerText = finalWeight.toFixed(2);
+        updateCalculations();
+        return finalWeight.toFixed(2);
+    }
+
+    function updateCalculations() {
+        const isZheng = document.getElementById('isZhengBoss').checked;
+        const net = parseFloat(document.getElementById('netWeight').value) || 0;
+        const finalWeight = parseFloat(document.getElementById('finalWeightDisplay').innerText) || 0;
+        const userPrice = parseFloat(document.getElementById('userPrice').value) || 0;
+        let freight = 0;
+        if (isZheng) {
+            freight = 50 * net;
         }
-    </script>
+        const totalPayment = (finalWeight * userPrice) - freight;
+        document.getElementById('freightDisplay').innerText = freight.toFixed(2);
+        document.getElementById('totalPaymentDisplay').innerText = totalPayment.toFixed(2);
+    }
+
+    function saveRecord() {
+        const userPrice = parseFloat(document.getElementById('userPrice').value);
+        if (isNaN(userPrice)) {
+            showToast("请输入货款价格");
+            return;
+        }
+        const record = {
+            id: Date.now(),
+            supplier: document.getElementById('supplier').value,
+            fuelType: document.getElementById('fuelType').value,
+            date: document.getElementById('date').value,
+            plateNumber: document.getElementById('plateNumber').value,
+            grossWeight: parseFloat(document.getElementById('grossWeight').value).toFixed(2),
+            tareWeight: parseFloat(document.getElementById('tareWeight').value).toFixed(2),
+            netWeight: parseFloat(document.getElementById('netWeight').value).toFixed(2),
+            deductImpurity: parseFloat(document.getElementById('deductImpurity').value).toFixed(2),
+            deductRot: parseFloat(document.getElementById('deductRot').value).toFixed(2),
+            deductLong: parseFloat(document.getElementById('deductLong').value).toFixed(2),
+            finalWeight: document.getElementById('finalWeightDisplay').innerText,
+            userPrice: userPrice.toFixed(2),
+            isZhengBoss: document.getElementById('isZhengBoss').checked,
+            freight: document.getElementById('freightDisplay').innerText,
+            totalPayment: document.getElementById('totalPaymentDisplay').innerText
+        };
+        const priceObj = appState.prices.find(p => p.name === record.fuelType);
+        const standardPrice = priceObj ? priceObj.price : 0;
+        record.repayment = (parseFloat(record.finalWeight) * standardPrice).toFixed(2);
+        appState.records.unshift(record);
+        localStorage.setItem('weighbridge_records', JSON.stringify(appState.records));
+        document.getElementById('ocrForm').reset();
+        document.getElementById('imagePreviewContainer').classList.add('hidden');
+        document.getElementById('finalWeightDisplay').innerText = "0.00";
+        document.getElementById('freightDisplay').innerText = "0.00";
+        document.getElementById('totalPaymentDisplay').innerText = "0.00";
+        setTodayDate();
+        showToast("保存成功");
+    }
+
+    function renderRecords() {
+        const container = document.getElementById('recordsList');
+        const filterDate = document.getElementById('filterDate').value;
+        const filterFuel = document.getElementById('filterFuel').value;
+        container.innerHTML = '';
+        const filtered = appState.records.filter(r => {
+            return (!filterDate || r.date === filterDate) && 
+                   (!filterFuel || r.fuelType === filterFuel);
+        });
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-400 mt-10">暂无匹配数据</div>';
+            return;
+        }
+        filtered.forEach(r => {
+            const card = document.createElement('div');
+            card.className = "bg-white p-4 rounded-lg shadow border-l-4 border-gray-300";
+            const repaymentColor = "text-green-600 font-bold";
+            let deductions = [];
+            if(parseFloat(r.deductImpurity) > 0) deductions.push(`杂${r.deductImpurity}%`);
+            if(parseFloat(r.deductRot) > 0) deductions.push(`霉${r.deductRot}%`);
+            if(parseFloat(r.deductLong) > 0) deductions.push(`长${r.deductLong}%`);
+            const deductionStr = deductions.length > 0 ? deductions.join(', ') : "无";
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h3 class="font-bold text-lg">${r.date} <span class="text-sm font-normal text-gray-500">${r.fuelType}</span></h3>
+                        <p class="text-sm text-gray-600">${r.supplier} | ${r.plateNumber}</p>
+                    </div>
+                    <div class="text-right">
+                         <div class="text-xs text-gray-500">净重：${r.netWeight}吨</div>
+                         <div class="text-xs text-gray-500">扣后：${r.finalWeight}吨</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm bg-gray-50 p-2 rounded mb-2">
+                    <div>扣除率：${deductionStr}</div>
+                    <div>单价：${r.userPrice}元</div>
+                    <div>付款总额：<span class="font-bold text-blue-700">${r.totalPayment}元</span></div>
+                    <div class="${repaymentColor}">回款：${r.repayment}元</div>
+                    ${r.isZhengBoss ? `<div class="col-span-2 text-red-500 text-xs">含运费：${r.freight}元 (郑老板)</div>` : ''}
+                </div>
+                <div class="flex justify-end gap-2 mt-2">
+                    <button onclick="exportRecord(${r.id})" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300">
+                        <i class="fas fa-image mr-1"></i>导出图片
+                    </button>
+                    <button onclick="deleteRecord(${r.id})" class="bg-red-100 text-red-600 px-3 py-1 rounded text-sm hover:bg-red-200">
+                        <i class="fas fa-trash mr-1"></i>删除
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function deleteRecord(id) {
+        if(confirm("确定删除此条记录吗？")) {
+            appState.records = appState.records.filter(r => r.id !== id);
+            localStorage.setItem('weighbridge_records', JSON.stringify(appState.records));
+            renderRecords();
+            showToast("已删除");
+        }
+    }
+
+    function exportRecord(id) {
+        const r = appState.records.find(rec => rec.id === id);
+        if (!r) return;
+        const canvas = document.getElementById('exportCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 600;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#000000";
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("燃料过磅单结算凭证", canvas.width / 2, 50);
+        ctx.textAlign = "left";
+        ctx.font = "24px Arial";
+        const startX = 50;
+        let startY = 120;
+        const lineHeight = 40;
+        const drawRow = (label, value) => {
+            ctx.fillText(label, startX, startY);
+            ctx.fillText(value, startX + 200, startY);
+            startY += lineHeight;
+        };
+        drawRow("日期:", r.date);
+        drawRow("供应商:", r.supplier);
+        drawRow("车牌号:", r.plateNumber);
+        drawRow("燃料种类:", r.fuelType);
+        drawRow("扣后重量:", r.finalWeight + " 吨");
+        drawRow("货款价格:", r.userPrice + " 元/吨");
+        startY += 20;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(canvas.width - 50, startY);
+        ctx.strokeStyle = "#cccccc";
+        ctx.stroke();
+        startY += 50;
+        ctx.font = "italic 20px Arial";
+        ctx.fillStyle = "#555555";
+        let formulaText = `计算公式：付款总额 = 扣后重量 (${r.finalWeight}) × 货款价格 (${r.userPrice})`;
+        if (r.isZhengBoss) {
+            formulaText += ` - 运费 (${r.freight})`;
+            drawRow("运费:", r.freight + " 元");
+        }
+        ctx.fillText(formulaText, startX, startY);
+        startY += 60;
+        ctx.font = "bold 36px Arial";
+        ctx.fillStyle = "#0000ff";
+        ctx.fillText("付款总额：" + r.totalPayment + " 元", startX, startY);
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#999999";
+        ctx.textAlign = "right";
+        ctx.fillText("生成时间：" + new Date().toLocaleString(), canvas.width - 50, canvas.height - 30);
+        try {
+            const link = document.createElement('a');
+            link.download = `结算单_${r.date}_${r.plateNumber}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            showToast("图片已生成，请查看下载");
+        } catch (e) {
+            showToast("导出失败，请截图保存");
+        }
+    }
+</script>
 </body>
 </html>

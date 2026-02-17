@@ -370,89 +370,137 @@
         }
 
 
-        // ============ 解析 OCR 结果 ============
-        function parseOCRResult(wordsList) {
-            console.log('识别结果:', wordsList);
-            
-            let d = { plate: '', net: '', gross: '', tare: '', fuel: '', date: '', supplier: '' };
-            
-            wordsList.forEach(item => {
-                const text = item.words.trim();
-                console.log('处理:', text);
+        // ============ 解析 OCR 结果（修复版） ============
+function parseOCRResult(wordsList) {
+    console.log('识别结果:', wordsList);
+    
+    let d = { 
+        plate: '', 
+        net: '', 
+        gross: '', 
+        tare: '', 
+        fuel: '', 
+        date: '', 
+        supplier: '',
+        deduct: 0
+    };
+    
+    wordsList.forEach(item => {
+        const text = item.words.trim();
+        console.log('处理:', text);
 
-
-                // 供应商
-                if(text.includes('供应商') || text.includes('安乡')) {
-                    d.supplier = text.replace(/.*供应商 [:：]?/, '').trim();
-                }
-
-
-                // 车牌号
-                if(text.includes('车牌') || text.match(/湘 [A-Z0-9]{5,}/)) {
-                    const m = text.match(/湘 [A-Z0-9]{5,}/);
-                    if(m) d.plate = m[0];
-                }
-
-
-                // 燃料种类
-                if(text.includes('燃料')) {
-                    const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
-                    for(const f of fuels) {
-                        if(text.includes(f)) {
-                            d.fuel = f;
-                            break;
-                        }
-                    }
-                }
-
-
-                // 单号/日期
-                if(text.includes('单号')) {
-                    const m = text.match(/(\d{4})(\d{2})(\d{2})/);
-                    if(m) d.date = `${m[1]}-${m[2]}-${m[3]}`;
-                }
-
-
-                // 毛重
-                if(text.includes('毛重')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) d.gross = parseFloat(nums[nums.length-1]);
-                }
-
-
-                // 皮重
-                if(text.includes('皮重')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) d.tare = parseFloat(nums[nums.length-1]);
-                }
-
-
-                // 净重
-                if(text.includes('净重')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) d.net = parseFloat(nums[nums.length-1]);
-                }
-
-
-                // 扣杂质
-                if(text.includes('杂质')) {
-                    const nums = text.match(/(\d+\.?\d*)/g);
-                    if(nums && nums.length > 0) d.deduct = parseFloat(nums[nums.length-1]);
-                }
-            });
-
-
-            // 填充表单
-            if(d.supplier) document.getElementById('f_supplier').value = d.supplier;
-            if(d.plate) document.getElementById('f_plate').value = d.plate;
-            if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
-            if(d.date) document.getElementById('f_date').value = d.date;
-            if(d.gross) document.getElementById('f_gross').value = d.gross.toFixed(2);
-            if(d.tare) document.getElementById('f_tare').value = d.tare.toFixed(2);
-            if(d.net) document.getElementById('f_net').value = d.net.toFixed(2);
-            
-            calc();
+        // 1. 供应商 - 去掉"供应商："前缀
+        if(text.includes('供应商')) {
+            d.supplier = text.replace(/.*?供应商 [:：]?\s*/, '').trim();
+            console.log('匹配到供应商:', d.supplier);
         }
+
+        // 2. 车牌号 - 专门匹配 湘 J+ 数字字母
+        if(text.includes('车牌') || text.match(/湘 [A-Z0-9]+/)) {
+            const m = text.match(/湘 [A-Z0-9]{5,}/);
+            if(m) {
+                d.plate = m[0];
+                console.log('匹配到车牌:', d.plate);
+            }
+        }
+
+        // 3. 燃料种类
+        if(text.includes('燃料种类') || text.includes('枝桠') || text.includes('杨树') || text.includes('杉木') || text.includes('树枝') || text.includes('薪柴') || text.includes('竹枝')) {
+            const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
+            for(const f of fuels) {
+                if(text.includes(f)) {
+                    d.fuel = f;
+                    console.log('匹配到燃料:', d.fuel);
+                    break;
+                }
+            }
+        }
+
+        // 4. 日期 - 支持多种格式 (YYYY/MM/DD 或 YYYY-MM-DD)
+        if(text.includes('单号') || text.match(/\d{4}[-/]\d{2}[-/]\d{2}/)) {
+            // 先尝试从单号提取
+            let m = text.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
+            if(!m) {
+                // 再尝试从其他位置提取日期
+                m = text.match(/(\d{4})(\d{2})(\d{2})/);
+            }
+            if(m) {
+                // 统一转换为 YYYY-MM-DD 格式
+                d.date = `${m[1]}-${m[2]}-${m[3]}`;
+                console.log('匹配到日期:', d.date);
+            }
+        }
+
+        // 5. 毛重 - 提取最后一个数字
+        if(text.includes('毛重')) {
+            const nums = text.match(/(\d+\.?\d*)/g);
+            if(nums && nums.length > 0) {
+                d.gross = parseFloat(nums[nums.length-1]);
+                console.log('匹配到毛重:', d.gross);
+            }
+        }
+
+        // 6. 皮重
+        if(text.includes('皮重')) {
+            const nums = text.match(/(\d+\.?\d*)/g);
+            if(nums && nums.length > 0) {
+                d.tare = parseFloat(nums[nums.length-1]);
+                console.log('匹配到皮重:', d.tare);
+            }
+        }
+
+        // 7. 净重
+        if(text.includes('净重')) {
+            const nums = text.match(/(\d+\.?\d*)/g);
+            if(nums && nums.length > 0) {
+                d.net = parseFloat(nums[nums.length-1]);
+                console.log('匹配到净重:', d.net);
+            }
+        }
+
+        // 8. 扣杂质 - 提取百分比数值
+        if(text.includes('杂质') || text.includes('扣杂质')) {
+            const nums = text.match(/(\d+\.?\d*)/g);
+            if(nums && nums.length > 0) {
+                d.deduct += parseFloat(nums[nums.length-1]);
+                console.log('匹配到杂质:', nums[nums.length-1]);
+            }
+        }
+        
+        // 9. 扣霉腐
+        if(text.includes('霉腐') || text.includes('扣霉腐')) {
+            const nums = text.match(/(\d+\.?\d*)/g);
+            if(nums && nums.length > 0) {
+                d.deduct += parseFloat(nums[nums.length-1]);
+                console.log('匹配到霉腐:', nums[nums.length-1]);
+            }
+        }
+        
+        // 10. 扣长杆
+        if(text.includes('长杆') || text.includes('扣长杆')) {
+            const nums = text.match(/(\d+\.?\d*)/g);
+            if(nums && nums.length > 0) {
+                d.deduct += parseFloat(nums[nums.length-1]);
+                console.log('匹配到长杆:', nums[nums.length-1]);
+            }
+        }
+    });
+
+    // 填充表单
+    if(d.supplier) document.getElementById('f_supplier').value = d.supplier;
+    if(d.plate) document.getElementById('f_plate').value = d.plate;
+    if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
+    if(d.date) document.getElementById('f_date').value = d.date;
+    if(d.gross) document.getElementById('f_gross').value = d.gross.toFixed(2);
+    if(d.tare) document.getElementById('f_tare').value = d.tare.toFixed(2);
+    if(d.net) document.getElementById('f_net').value = d.net.toFixed(2);
+    if(d.deduct > 0) document.getElementById('f_deduct').value = d.deduct.toFixed(2);
+    
+    // 自动计算结算净重
+    calc();
+    
+    console.log('最终解析结果:', d);
+}
 
 
         function enableManual() {

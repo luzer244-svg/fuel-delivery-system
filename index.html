@@ -4,8 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>绿色能源货物交付系统</title>
-    <!-- 引入 Tesseract.js OCR 库 -->
-    <script src='https://cdn.staticfile.org/tesseract.js/5.0.0/tesseract.min.js'></script>
+    
+    <!-- 多个 CDN 源，自动选择可用的 -->
+    <script src='https://cdn.staticfile.org/tesseract.js/5.0.0/tesseract.min.js' onerror="loadBackupCDN()"></script>
+    <script>
+        // 备用 CDN 加载函数
+        function loadBackupCDN() {
+            console.log('主 CDN 加载失败，尝试备用 CDN...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.bootcdn.net/ajax/libs/tesseract.js/5.0.0/tesseract.min.js';
+            script.onerror = function() {
+                console.log('备用 CDN 也失败，启用手动输入模式');
+                document.getElementById('ocr-notice').style.display = 'block';
+            };
+            document.head.appendChild(script);
+        }
+        
+        // 检测 Tesseract 是否加载成功
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                if (typeof Tesseract === 'undefined') {
+                    console.log('Tesseract 未加载，显示手动输入提示');
+                    document.getElementById('ocr-notice').style.display = 'block';
+                }
+            }, 3000);
+        });
+    </script>
+    
     <style>
         :root {
             --primary-color: #2c7be5;
@@ -139,6 +164,16 @@
             font-size: 12px; color: var(--text-secondary);
             text-align: center; margin-top: 5px; display: none;
         }
+        
+        .notice-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .notice-box p { color: #856404; font-size: 14px; margin: 0; }
     </style>
 </head>
 <body>
@@ -146,6 +181,11 @@
     <!-- 页面 1: 首页 (OCR 识别) -->
     <div id="page-home" class="page active">
         <h1>📸 燃料过磅单识别</h1>
+        
+        <!-- OCR 加载失败提示 -->
+        <div id="ocr-notice" class="notice-box">
+            <p>⚠️ OCR 识别服务加载失败，您可以手动输入数据，或刷新页面重试。</p>
+        </div>
         
         <div class="card">
             <div class="upload-area" onclick="document.getElementById('file-input').click()">
@@ -161,6 +201,7 @@
             <div id="progress-text" class="progress-text">识别中...</div>
             
             <button class="btn" onclick="startRecognition()" id="btn-recognize" style="display:none;">开始识别</button>
+            <button class="btn btn-warning" onclick="enableManualInput()" id="btn-manual" style="display:none;">✏️ 手动输入数据</button>
         </div>
 
         <div id="recognition-result" class="card" style="display:none;">
@@ -302,6 +343,16 @@
             document.querySelectorAll('#verify-form input').forEach(input => {
                 input.addEventListener('input', calculateDeductions);
             });
+            
+            // 检测 Tesseract 是否可用
+            if (typeof Tesseract !== 'undefined') {
+                console.log('Tesseract 加载成功');
+                document.getElementById('btn-manual').style.display = 'none';
+            } else {
+                console.log('Tesseract 加载失败，显示手动输入按钮');
+                document.getElementById('btn-manual').style.display = 'block';
+                document.getElementById('ocr-notice').style.display = 'block';
+            }
         };
 
         function switchPage(pageId, navEl) {
@@ -322,7 +373,7 @@
             setTimeout(() => t.style.display = 'none', 3000);
         }
 
-        // --- 首页：图片处理与 OCR (使用 Tesseract.js) ---
+        // --- 首页：图片处理与 OCR ---
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -336,13 +387,30 @@
                 img.style.display = 'block';
                 currentImageBase64 = e.target.result;
                 document.getElementById('btn-recognize').style.display = 'block';
+                document.getElementById('btn-manual').style.display = 'block';
             };
             reader.readAsDataURL(file);
+        }
+
+        function enableManualInput() {
+            // 直接显示表单让用户手动输入
+            document.getElementById('v-supplier').value = "安乡县顺清秸秆综合利用专业合作社";
+            document.getElementById('v-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('recognition-result').style.display = 'block';
+            document.getElementById('recognition-result').scrollIntoView({behavior: "smooth"});
+            showToast("已进入手动输入模式");
         }
 
         async function startRecognition() {
             if (!currentImageFile) {
                 alert("请先选择图片！");
+                return;
+            }
+            
+            // 检查 Tesseract 是否可用
+            if (typeof Tesseract === 'undefined') {
+                alert("OCR 服务未加载成功，请点击「手动输入数据」按钮");
+                enableManualInput();
                 return;
             }
             
@@ -359,7 +427,6 @@
             btn.innerText = "识别中...";
 
             try {
-                // 使用 Tesseract.js 进行 OCR 识别
                 const worker = await Tesseract.createWorker({
                     logger: m => {
                         if (m.status === 'recognizing text') {
@@ -384,7 +451,8 @@
 
             } catch (error) {
                 console.error(error);
-                alert("识别失败：" + error.message + "\n\n请确保图片清晰，文字可辨认");
+                alert("识别失败：" + error.message + "\n\n请点击「手动输入数据」按钮");
+                enableManualInput();
             } finally {
                 loader.style.display = 'none';
                 progressBar.style.display = 'none';
@@ -397,26 +465,21 @@
         function parseOCRResult(text) {
             console.log("识别到的文字:", text);
             
-            // 将文本按行分割
             const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
             
             const textMap = {};
             
             lines.forEach(line => {
-                // 供应商
                 if (line.includes('供应商') || line.includes('安乡')) {
                     textMap.supplier = line.replace(/供应商 [:：]/g, '').trim();
                 }
-                // 车牌号
                 if (line.includes('车牌号') || line.includes('湘J')) {
                     const match = line.match(/湘 [A-Z0-9]+/);
                     if (match) textMap.plate = match[0];
                 }
-                // 燃料种类
                 if (line.includes('燃料种类') || line.includes('燃料')) {
                     textMap.fuel = line.replace(/燃料种类 [:：]/g, '').trim();
                 }
-                // 单号/日期
                 if (line.includes('单号')) {
                     const match = line.match(/(\d{8})/);
                     if (match) {
@@ -424,44 +487,36 @@
                         textMap.date = dateStr;
                     }
                 }
-                // 毛重
                 if (line.includes('毛重')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.gross = parseFloat(match[1]) || 0;
                 }
-                // 皮重
                 if (line.includes('皮重')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.tare = parseFloat(match[1]) || 0;
                 }
-                // 净重
                 if (line.includes('净重')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.net = parseFloat(match[1]) || 0;
                 }
-                // 扣杂质
                 if (line.includes('扣杂质') || line.includes('杂质')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.impurity = parseFloat(match[1]) || 0;
                 }
-                // 扣霉腐
                 if (line.includes('扣霉腐') || line.includes('霉腐')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.mold = parseFloat(match[1]) || 0;
                 }
-                // 扣长杆
                 if (line.includes('扣长杆') || line.includes('长杆')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.longStick = parseFloat(match[1]) || 0;
                 }
-                // 扣除重量
                 if (line.includes('扣除重量')) {
                     const match = line.match(/(\d+\.?\d*)/);
                     if (match) textMap.deductWeight = parseFloat(match[1]) || 0;
                 }
             });
 
-            // 填充表单
             document.getElementById('v-supplier').value = textMap.supplier || "安乡县顺清秸秆综合利用专业合作社";
             document.getElementById('v-plate').value = textMap.plate || "";
             document.getElementById('v-fuel').value = textMap.fuel || "";
@@ -572,6 +627,7 @@
             document.getElementById('recognition-result').style.display = 'none';
             document.getElementById('preview-img').style.display = 'none';
             document.getElementById('btn-recognize').style.display = 'none';
+            document.getElementById('btn-manual').style.display = 'none';
             currentImageBase64 = "";
             currentImageFile = null;
             

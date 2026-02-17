@@ -348,15 +348,15 @@
                 const text = item.words.trim();
                 console.log('处理:', text);
 
-                // 1. 供应商 - 彻底清理前缀
+                // 1. 供应商 - 彻底清理前缀和标点
                 if(text.includes('供应商')) {
-                    // 方法 1：如果包含冒号，取冒号后面的内容
-                    if(text.includes(':') || text.includes(':')) {
-                        d.supplier = text.split(/[:：]/)[1].trim();
-                    } else {
-                        // 方法 2：直接去掉"供应商"三个字
-                        d.supplier = text.replace('供应商', '').replace(':', '').replace(':', '').trim();
+                    // 先按冒号分割，取后面的内容
+                    let supplierText = text;
+                    if(text.includes(':') || text.includes('：')) {
+                        supplierText = text.split(/[:：]/)[1];
                     }
+                    // 去掉"供应商"三个字和所有标点
+                    d.supplier = supplierText.replace(/供应商/g, '').replace(/[:：]/g, '').trim();
                     console.log('匹配到供应商:', d.supplier);
                 }
 

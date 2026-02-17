@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>绿色能源货物交付系统</title>
+    
+    <!-- 使用国内稳定的 CDN 加载 Tesseract.js -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    
     <style>
+        /* 后面所有样式代码保持不变 */
         :root {
             --primary-color: #2c7be5;
             --success-color: #00d97e;
@@ -291,9 +296,12 @@
             secretKey: 'WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY'
         };
 
-        const CORS_PROXIES = [
-            'https://baidu-ocr-proxy.luzer244.workers.dev/?url=baidu-ocr-proxy.luzer244.workers.dev' 
-        ];
+        // CORS 代理列表（多个备用）
+            const CORS_PROXIES = [
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ];
 
 
         let priceList = [

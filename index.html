@@ -4,12 +4,9 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
 <title>燃料过磅单处理系统</title>
-<!-- Tailwind CSS -->
 <script src="https://image.uc.cn/s/uae/g/3n/mos-production/0915/3.4.17.js"></script>
-<!-- Font Awesome -->
 <script src="https://image.uc.cn/s/uae/g/3n/mos-production/fontawesome-free-7.1.0-web/js/all.min.js"></script>
 <link href="https://image.uc.cn/s/uae/g/3n/mos-production/fontawesome-free-7.1.0-web/css/fontawesome.min.css" rel="stylesheet"/>
-<!-- Axios (保留用于其他请求，虽然 OCR 我们用 fetch 了) -->
 <script src="https://image.uc.cn/s/uae/g/3n/mos-production/cdn-staticfile-net/axios/1.6.7/axios.min.js"></script>
 <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f3f4f6; padding-bottom: 80px; font-size: 16px; }
@@ -19,9 +16,6 @@
     #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 50; left: 50%; top: 30px; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s, top 0.3s; }
     #toast.show { visibility: visible; opacity: 1; top: 50px; }
     #exportCanvas { display: none; }
-    .data-table th, .data-table td { padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-    .data-table th { background-color: #f9fafb; font-weight: 600; }
-    /* 加载动画 */
     .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
@@ -141,14 +135,17 @@
         </div>
     </section>
 
-    <!-- PAGE 2: QUERY -->
+    <!-- PAGE 2: QUERY (增加供应商筛选) -->
     <section class="page-section hidden" id="page-query">
         <h2 class="text-2xl font-bold mb-4 text-gray-800 border-l-4 border-green-500 pl-3">数据查询</h2>
-        <div class="bg-white p-3 rounded-lg shadow mb-4 flex gap-2">
-            <input class="border rounded p-2 flex-1" id="filterDate" onchange="renderRecords()" type="date"/>
-            <select class="border rounded p-2 flex-1" id="filterFuel" onchange="renderRecords()">
-                <option value="">所有燃料</option>
-            </select>
+        <div class="bg-white p-3 rounded-lg shadow mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <input class="border rounded p-2" id="filterDate" onchange="renderRecords()" type="date"/>
+                <select class="border rounded p-2" id="filterFuel" onchange="renderRecords()">
+                    <option value="">所有燃料</option>
+                </select>
+                <input class="border rounded p-2" id="filterSupplier" placeholder="搜索供应商..." oninput="renderRecords()"/>
+            </div>
         </div>
         <div class="space-y-4" id="recordsList">
             <div class="text-center text-gray-400 mt-10">暂无数据</div>
@@ -201,9 +198,6 @@
             <div class="text-center text-gray-400 text-sm mt-8">
                 <i class="fas fa-lock"></i> 信息仅供查看，不可修改
             </div>
-            <div class="mt-4 p-3 bg-green-50 text-green-700 text-sm rounded text-center">
-                ✅ 当前使用专属 Cloudflare 代理，连接稳定
-            </div>
         </div>
     </section>
 </main>
@@ -233,10 +227,8 @@
 
 <script>
     // ================= 配置区 =================
-    // 使用你的专属 Cloudflare Worker 代理
     const WORKER_URL = 'https://baidu-ocr-proxy.luzer244.workers.dev/?url=';
     
-    // 百度 OCR 配置 (用于获取 Token)
     const BAIDU_CONFIG = {
         apiKey: 'NnrvJeOWeVcQ4vEdOWcT20q7',
         secretKey: 'WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY',
@@ -359,14 +351,13 @@
         }
     }
 
-    // ================= 核心 OCR 逻辑 (已替换为 Worker 版) =================
+    // ================= OCR 核心逻辑 =================
     
     async function getAccessToken() {
         const now = Date.now();
         if (appState.accessToken && now < appState.tokenExpiry) {
             return appState.accessToken;
         }
-        // 通过 Worker 获取 Token (避免跨域)
         const url = `${BAIDU_CONFIG.tokenUrl}?grant_type=client_credentials&client_id=${BAIDU_CONFIG.apiKey}&client_secret=${BAIDU_CONFIG.secretKey}`;
         try {
             const response = await fetch(WORKER_URL + encodeURIComponent(url));
@@ -394,7 +385,6 @@
                 document.getElementById('imagePreview').src = e.target.result;
                 document.getElementById('imagePreviewContainer').classList.remove('hidden');
                 document.getElementById('ocrStatus').classList.remove('hidden');
-                // 开始识别
                 performOCR(e.target.result.split(',')[1]);
             }
             reader.readAsDataURL(file);
@@ -408,11 +398,9 @@
             return;
         }
 
-        // 构建百度 OCR 请求 URL (高精度版 accurate_basic)
         const ocrUrl = `https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=${token}`;
         
         try {
-            // 通过 Worker 转发请求
             const response = await fetch(WORKER_URL + encodeURIComponent(ocrUrl), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -427,7 +415,6 @@
                 throw new Error(data.error_msg || '识别失败');
             }
 
-            // 识别成功，解析结果
             parseOCRResults(data.words_result);
             document.getElementById('ocrStatus').innerHTML = '<i class="fas fa-check-circle text-green-500"></i> 识别完成';
             setTimeout(() => document.getElementById('ocrStatus').classList.add('hidden'), 2000);
@@ -440,81 +427,124 @@
         }
     }
 
-    // ================= 超强解析逻辑 (修复版) =================
+    // ================= 增强版解析逻辑 (修复车牌和日期) =================
     function parseOCRResults(wordsResult) {
         let fullText = wordsResult.map(item => item.words).join('\n');
+        console.log('完整识别文本:', fullText);
         
-        // 辅助函数：查找关键词附近的值
-        const findValue = (keyword, regex = /\d+\.?\d*/) => {
-            for (let item of wordsResult) {
-                if (item.words.includes(keyword)) {
-                    const match = item.words.match(regex);
-                    if (match) return match[0];
-                }
-            }
-            // 尝试在下一行查找
-            for (let i = 0; i < wordsResult.length - 1; i++) {
-                if (wordsResult[i].words.includes(keyword)) {
-                    const match = wordsResult[i+1].words.match(regex);
-                    if (match) return match[0];
-                }
-            }
-            return "";
-        };
-
-        // 1. 日期 (从单号提取)
-        const serialMatch = fullText.match(/单号 [:：]?\s*(\d{8}\d*)/);
+        // 1. 日期 - 多种格式匹配
         let dateStr = "";
+        
+        // 方法 1: 从单号提取 (YYYYMMDD)
+        const serialMatch = fullText.match(/单号 [:：]?\s*(\d{8,14})/);
         if (serialMatch && serialMatch[1]) {
             const d = serialMatch[1].substring(0, 8);
             dateStr = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
-        } else {
-            setTodayDate();
         }
-        document.getElementById('date').value = dateStr;
+        
+        // 方法 2: 直接找日期格式 (YYYY-MM-DD 或 YYYY/MM/DD)
+        if (!dateStr) {
+            const dateMatch = fullText.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (dateMatch) {
+                dateStr = `${dateMatch[1]}-${dateMatch[2].padStart(2,'0')}-${dateMatch[3].padStart(2,'0')}`;
+            }
+        }
+        
+        // 方法 3: 找"年"字格式
+        if (!dateStr) {
+            const yearMatch = fullText.match(/(\d{4}) 年 (\d{1,2}) 月 (\d{1,2}) 日/);
+            if (yearMatch) {
+                dateStr = `${yearMatch[1]}-${yearMatch[2].padStart(2,'0')}-${yearMatch[3].padStart(2,'0')}`;
+            }
+        }
+        
+        // 如果都没找到，用今天
+        if (!dateStr) {
+            setTodayDate();
+        } else {
+            document.getElementById('date').value = dateStr;
+        }
+        console.log('解析日期:', dateStr);
 
-        // 2. 供应商 (彻底清理冒号和前缀)
+        // 2. 供应商 - 彻底清理
         let supplierText = "";
         for (let item of wordsResult) {
-            if (item.words.includes('供应商')) {
-                if(item.words.includes(':') || item.words.includes('：')) {
-                    supplierText = item.words.split(/[:：]/)[1];
+            const text = item.words.trim();
+            if (text.includes('供应商')) {
+                // 按冒号分割
+                if(text.includes(':') || text.includes('：')) {
+                    const parts = text.split(/[:：]/);
+                    supplierText = parts[parts.length - 1].trim();
                 } else {
-                    supplierText = item.words.replace('供应商', '');
+                    supplierText = text.replace('供应商', '').trim();
                 }
-                supplierText = supplierText.replace(/[:：]/g, '').replace(/\s+/g, ' ').trim();
+                // 清理所有标点
+                supplierText = supplierText.replace(/[:：\s]+/g, ' ').trim();
                 break;
             }
         }
         document.getElementById('supplier').value = supplierText;
+        console.log('解析供应商:', supplierText);
 
-        // 3. 车牌号 (增强正则)
+        // 3. 车牌号 - 增强匹配
         let plate = "";
+        
+        // 方法 1: 找"车牌"关键词所在行
         for (let item of wordsResult) {
-            if (item.words.includes('车牌')) {
-                const m = item.words.match(/湘 [A-Z][A-Z0-9]{4,6}/);
-                if(m) { plate = m[0]; break; }
+            const text = item.words.trim();
+            if (text.includes('车牌') || text.includes('车号')) {
+                // 匹配湘 J 开头的车牌
+                const m = text.match(/湘 [A-Z][A-Z0-9]{4,6}/);
+                if(m) {
+                    plate = m[0];
+                    break;
+                }
+                // 匹配任意省份车牌
+                const m2 = text.match(/[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼][A-Z][A-Z0-9]{4,6}/);
+                if(m2) {
+                    plate = m2[0];
+                    break;
+                }
             }
         }
-        // 备用匹配
+        
+        // 方法 2: 全文搜索车牌号
         if(!plate) {
-            const m = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
-            if(m) plate = m[0];
+            const plateMatch = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
+            if(plateMatch) {
+                plate = plateMatch[0];
+            }
         }
+        
         document.getElementById('plateNumber').value = plate;
+        console.log('解析车牌:', plate);
         
         // 4. 重量
-        const gross = findValue("毛重");
-        const tare = findValue("皮重");
-        const net = findValue("净重");
+        const findNumber = (keyword) => {
+            for (let item of wordsResult) {
+                if (item.words.includes(keyword)) {
+                    const nums = item.words.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) {
+                        return nums[nums.length - 1];
+                    }
+                }
+            }
+            return "";
+        };
+        
+        const gross = findNumber("毛重");
+        const tare = findNumber("皮重");
+        const net = findNumber("净重");
+        
         if(gross) document.getElementById('grossWeight').value = parseFloat(gross).toFixed(2);
         if(tare) document.getElementById('tareWeight').value = parseFloat(tare).toFixed(2);
         if(net) document.getElementById('netWeight').value = parseFloat(net).toFixed(2);
 
         // 5. 扣杂
-        const impurity = findValue("杂质") || findValue("扣杂");
-        const rot = findValue("霉腐") || findValue("扣霉");
-        const long = findValue("长杆") || findValue("扣长");
+        const impurity = findNumber("杂质") || findNumber("扣杂");
+        const rot = findNumber("霉腐") || findNumber("扣霉");
+        const long = findNumber("长杆") || findNumber("扣长");
+        
         if(impurity) document.getElementById('deductImpurity').value = parseFloat(impurity).toFixed(2);
         if(rot) document.getElementById('deductRot').value = parseFloat(rot).toFixed(2);
         if(long) document.getElementById('deductLong').value = parseFloat(long).toFixed(2);
@@ -524,7 +554,6 @@
         if(foundFuel) {
             document.getElementById('fuelType').value = foundFuel.name;
         } else {
-            // 模糊匹配
             const lines = fullText.split('\n');
             for(let line of lines) {
                 if(line.includes("燃料") || line.includes("品名")) {
@@ -539,7 +568,7 @@
         calculateDeduction();
     }
 
-    // ================= 计算逻辑 (保持原样) =================
+    // ================= 计算逻辑 =================
     function setTodayDate() {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date').value = today;
@@ -611,7 +640,6 @@
         appState.records.unshift(record);
         localStorage.setItem('weighbridge_records', JSON.stringify(appState.records));
         
-        // 重置表单
         document.getElementById('ocrForm').reset();
         document.getElementById('imagePreviewContainer').classList.add('hidden');
         document.getElementById('finalWeightDisplay').innerText = "0.00";
@@ -622,19 +650,27 @@
         showToast("保存成功");
     }
 
+    // ================= 查询功能 (增加供应商筛选) =================
     function renderRecords() {
         const container = document.getElementById('recordsList');
         const filterDate = document.getElementById('filterDate').value;
         const filterFuel = document.getElementById('filterFuel').value;
+        const filterSupplier = document.getElementById('filterSupplier').value.trim().toLowerCase();
+        
         container.innerHTML = '';
+        
         const filtered = appState.records.filter(r => {
-            return (!filterDate || r.date === filterDate) && 
-                   (!filterFuel || r.fuelType === filterFuel);
+            const matchDate = !filterDate || r.date === filterDate;
+            const matchFuel = !filterFuel || r.fuelType === filterFuel;
+            const matchSupplier = !filterSupplier || (r.supplier && r.supplier.toLowerCase().includes(filterSupplier));
+            return matchDate && matchFuel && matchSupplier;
         });
+        
         if (filtered.length === 0) {
             container.innerHTML = '<div class="text-center text-gray-400 mt-10">暂无匹配数据</div>';
             return;
         }
+        
         filtered.forEach(r => {
             const card = document.createElement('div');
             card.className = "bg-white p-4 rounded-lg shadow border-l-4 border-gray-300";

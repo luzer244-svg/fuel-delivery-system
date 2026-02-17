@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>绿色能源货物交付系统 (修复版)</title>
-    <script src="https://cdn.bootcdn.net/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+    <title>绿色能源货物交付系统 (百度 OCR 版)</title>
     <style>
         :root { --primary: #2c7be5; --success: #00d97e; --warning: #f6c343; --danger: #e63757; --bg: #f5f7fb; --card: #fff; --text: #12263f; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
@@ -40,18 +39,24 @@
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; color: #666; }
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 1000; display: none; }
-        .debug-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; display: none; }
+        .debug-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; display: none; }
         .debug-title { font-weight: bold; margin-bottom: 5px; color: #666; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-bottom: 10px; }
+        .status-ok { background: #d4edda; color: #155724; }
+        .status-err { background: #f8d7da; color: #721c24; }
+        .status-warn { background: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
 
     <div id="page-home" class="page active">
-        <h1>📸 过磅单录入</h1>
+        <h1>📸 过磅单识别 (百度高精度)</h1>
         
         <div class="card">
+            <div id="apiStatus" class="status-badge status-warn">🔄 正在连接百度 OCR...</div>
+            
             <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-                <p>点击拍照或选择图片</p>
+                <p>📷 点击拍照或选择图片</p>
                 <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none" onchange="handleFile(event)">
             </div>
             <img id="preview" alt="预览">
@@ -60,12 +65,11 @@
             <div id="progress" class="progress"><div id="pBar" class="progress-bar"></div></div>
             <div id="statusText" class="status-text">准备就绪</div>
 
-            <button id="btnRec" class="btn" style="display:none" onclick="startOCR()">🚀 开始智能识别</button>
-            <button class="btn btn-warning" onclick="enableManual()">✏️ 跳过识别，手动输入</button>
+            <button id="btnRec" class="btn btn-success" style="display:none" onclick="startOCR()">🚀 开始百度 OCR 识别</button>
+            <button class="btn btn-warning" onclick="enableManual()">✏️ 手动输入</button>
             
-            <!-- 调试区域：显示识别到的原始文字 -->
             <div id="debugBox" class="debug-box">
-                <div class="debug-title">📋 识别到的原始文字：</div>
+                <div class="debug-title">📋 识别结果：</div>
                 <div id="debugText"></div>
             </div>
         </div>
@@ -126,10 +130,11 @@
     <div id="page-about" class="page">
         <h1>ℹ️ 系统信息</h1>
         <div class="card">
-            <p>版本：v3.1 修复版</p>
-            <p>识别引擎：Tesseract.js (本地运行)</p>
-            <p>数据存储：手机本地存储</p>
-            <p style="color:green; margin-top:10px">✅ 增加识别调试功能</p>
+            <p><strong>版本：</strong>v4.0 百度 OCR 版</p>
+            <p><strong>识别引擎：</strong>百度智能云 通用文字识别（高精度版）</p>
+            <p><strong>AppID：</strong>122102244</p>
+            <p><strong>数据存储：</strong>手机本地存储</p>
+            <p style="color:green; margin-top:10px">✅ 高精度识别，准确率 98%+</p>
         </div>
     </div>
 
@@ -143,6 +148,21 @@
     <div id="toast" class="toast">提示</div>
 
     <script>
+        // ============ 百度 OCR 配置 ============
+        const BAIDU = {
+            appId: '122102244',
+            apiKey: 'NnrvJeOWeVcQ4vEdOWcT20q7',
+            secretKey: 'WuIokhwPmDXPgS1Viz8m1jaIaM7dlsUY'
+        };
+
+        // CORS 代理列表 (多个备用)
+        const PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+
+        // 价格和数据
         let prices = JSON.parse(localStorage.getItem('prices')) || [
             {n:"枝桠柴三级", p:202}, {n:"杨树皮一级", p:180}, {n:"杨树皮二级", p:247},
             {n:"杉木树枝一级", p:202}, {n:"杉木树枝二级", p:242}, {n:"干树枝一级", p:298},
@@ -150,11 +170,15 @@
         ];
         let records = JSON.parse(localStorage.getItem('records')) || [];
         let curImg = null;
+        let curImgBase64 = null;
+        let accessToken = '';
+        let tokenExpire = 0;
 
         window.onload = () => {
             document.getElementById('f_date').valueAsDate = new Date();
             renderPrice();
             renderList();
+            initBaiduOCR();
         };
 
         function sw(id, el) {
@@ -172,6 +196,49 @@
             setTimeout(()=>t.style.display='none', 2000);
         }
 
+        // ============ 百度 OCR 初始化 ============
+        async function initBaiduOCR() {
+            const statusEl = document.getElementById('apiStatus');
+            try {
+                await getAccessToken();
+                statusEl.className = 'status-badge status-ok';
+                statusEl.innerText = '✅ 百度 OCR 已就绪';
+            } catch(err) {
+                statusEl.className = 'status-badge status-err';
+                statusEl.innerText = '❌ 百度 OCR 连接失败';
+                console.error('初始化失败:', err);
+            }
+        }
+
+        async function getAccessToken() {
+            // 检查缓存
+            if(accessToken && Date.now() < tokenExpire) {
+                return accessToken;
+            }
+
+            const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${BAIDU.apiKey}&client_secret=${BAIDU.secretKey}`;
+            
+            // 尝试多个代理
+            for(const proxy of PROXIES) {
+                try {
+                    const res = await fetch(proxy + encodeURIComponent(url));
+                    if(!res.ok) continue;
+                    const data = await res.json();
+                    if(data.access_token) {
+                        accessToken = data.access_token;
+                        tokenExpire = Date.now() + (29 * 24 * 60 * 60 * 1000); // 29 天
+                        console.log('获取 Token 成功');
+                        return accessToken;
+                    }
+                } catch(e) {
+                    console.log('代理失败:', proxy, e.message);
+                    continue;
+                }
+            }
+            throw new Error('所有代理均失败');
+        }
+
+        // ============ 图片处理 ============
         function handleFile(e) {
             const f = e.target.files[0];
             if(!f) return;
@@ -183,145 +250,173 @@
                 img.style.display = 'block';
                 document.getElementById('btnRec').style.display = 'block';
                 document.getElementById('debugBox').style.display = 'none';
+                // 提取 base64 (去掉 data:image/jpeg;base64, 前缀)
+                curImgBase64 = ev.target.result.split(',')[1];
             };
             r.readAsDataURL(f);
         }
 
+        // ============ 开始 OCR 识别 ============
         async function startOCR() {
-            if(!curImg) return alert('请先选图');
-            if(typeof Tesseract === 'undefined') return alert('识别引擎加载失败，请手动输入');
+            if(!curImgBase64) return alert('请先选择图片');
             
-            document.getElementById('btnRec').disabled = true;
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('progress').style.display = 'block';
-            document.getElementById('statusText').style.display = 'block';
-            document.getElementById('debugBox').style.display = 'block';
-            document.getElementById('debugText').innerText = '正在识别...';
+            const btn = document.getElementById('btnRec');
+            const loader = document.getElementById('loader');
+            const progress = document.getElementById('progress');
+            const pBar = document.getElementById('pBar');
+            const statusText = document.getElementById('statusText');
+            const debugBox = document.getElementById('debugBox');
+            const debugText = document.getElementById('debugText');
+
+            btn.disabled = true;
+            loader.style.display = 'block';
+            progress.style.display = 'block';
+            debugBox.style.display = 'block';
+            pBar.style.width = '20%';
+            statusText.innerText = '正在获取认证...';
+            debugText.innerText = '正在连接百度 OCR 服务...';
 
             try {
-                const worker = await Tesseract.createWorker({
-                    logger: m => {
-                        if(m.status === 'recognizing text') {
-                            document.getElementById('pBar').style.width = (m.progress*100)+'%';
-                            document.getElementById('statusText').innerText = `识别中 ${Math.round(m.progress*100)}%`;
-                        } else {
-                            document.getElementById('statusText').innerText = m.status;
+                // 1. 获取 Token
+                await getAccessToken();
+                pBar.style.width = '40%';
+                statusText.innerText = '正在识别图片...';
+
+                // 2. 调用 OCR 接口
+                const ocrUrl = `https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic?access_token=${accessToken}`;
+                let ocrResult = null;
+
+                for(const proxy of PROXIES) {
+                    try {
+                        statusText.innerText = `尝试代理：${proxy.substring(0, 30)}...`;
+                        const res = await fetch(proxy + encodeURIComponent(ocrUrl), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `image=${encodeURIComponent(curImgBase64)}`
+                        });
+
+                        if(!res.ok) {
+                            console.log('代理返回状态:', res.status);
+                            continue;
                         }
+
+                        const data = await res.json();
+                        if(data.error_code) {
+                            throw new Error(data.error_msg || '识别失败');
+                        }
+
+                        ocrResult = data;
+                        break;
+                    } catch(e) {
+                        console.log('代理失败:', proxy, e.message);
+                        continue;
                     }
-                });
-                await worker.loadLanguage('chi_sim');
-                await worker.initialize('chi_sim');
-                const { data: { text } } = await worker.recognize(curImg);
-                await worker.terminate();
-                
-                // 显示识别到的原始文字
-                document.getElementById('debugText').innerText = text;
-                
-                parseText(text);
+                }
+
+                if(!ocrResult) {
+                    throw new Error('所有代理均无法完成识别，请检查网络或稍后重试');
+                }
+
+                pBar.style.width = '100%';
+                statusText.innerText = '识别完成！';
+                debugText.innerText = JSON.stringify(ocrResult.words_result, null, 2);
+
+                // 3. 解析结果
+                parseOCRResult(ocrResult.words_result);
                 document.getElementById('formArea').style.display = 'block';
-                toast('识别完成，请核对数据');
+                toast('✅ 识别成功，请核对数据');
+
             } catch(err) {
                 console.error(err);
-                document.getElementById('debugText').innerText = '识别失败：' + err.message;
-                alert('识别出错：' + err.message + '\n请查看下方识别文字，手动输入');
+                statusText.innerText = '识别失败';
+                debugText.innerText = '错误：' + err.message;
+                alert('识别失败：' + err.message + '\n\n建议：\n1. 检查网络连接\n2. 稍后重试\n3. 使用手动输入');
                 enableManual();
             } finally {
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('progress').style.display = 'none';
-                document.getElementById('statusText').style.display = 'none';
-                document.getElementById('btnRec').disabled = false;
+                btn.disabled = false;
+                loader.style.display = 'none';
+                progress.style.display = 'none';
+                statusText.style.display = 'none';
             }
         }
 
-        // 修复后的解析函数 - 更智能的匹配
-        function parseText(txt) {
-            console.log('原始识别文字:', txt);
+        // ============ 解析 OCR 结果 ============
+        function parseOCRResult(wordsList) {
+            console.log('识别结果:', wordsList);
             
-            const lines = txt.split('\n').filter(l => l.trim().length > 0);
-            let d = { plate: '', net: '', gross: '', tare: '', fuel: '', date: '' };
+            let d = { plate: '', net: '', gross: '', tare: '', fuel: '', date: '', supplier: '' };
             
-            lines.forEach(l => {
-                const line = l.trim();
-                console.log('处理行:', line);
-                
-                // 车牌号匹配 (湘J + 字母数字)
-                if(line.includes('车牌') || line.match(/湘[A-Z0-9]{5,}/)) {
-                    const m = line.match(/湘[A-Z0-9]{5,}/);
-                    if(m) {
-                        d.plate = m[0];
-                        console.log('匹配到车牌:', d.plate);
-                    }
+            wordsList.forEach(item => {
+                const text = item.words.trim();
+                console.log('处理:', text);
+
+                // 供应商
+                if(text.includes('供应商') || text.includes('安乡')) {
+                    d.supplier = text.replace(/.*供应商 [:：]?/, '').trim();
                 }
-                
-                // 净重匹配 (找"净重"后面的数字)
-                if(line.includes('净重')) {
-                    const m = line.match(/(\d+\.?\d*)/);
-                    if(m) {
-                        d.net = parseFloat(m[1]);
-                        console.log('匹配到净重:', d.net);
-                    }
+
+                // 车牌号
+                if(text.includes('车牌') || text.match(/湘 [A-Z0-9]{5,}/)) {
+                    const m = text.match(/湘 [A-Z0-9]{5,}/);
+                    if(m) d.plate = m[0];
                 }
-                
-                // 毛重匹配
-                if(line.includes('毛重')) {
-                    const m = line.match(/(\d+\.?\d*)/);
-                    if(m) {
-                        d.gross = parseFloat(m[1]);
-                        console.log('匹配到毛重:', d.gross);
-                    }
-                }
-                
-                // 皮重匹配
-                if(line.includes('皮重')) {
-                    const m = line.match(/(\d+\.?\d*)/);
-                    if(m) {
-                        d.tare = parseFloat(m[1]);
-                        console.log('匹配到皮重:', d.tare);
-                    }
-                }
-                
-                // 燃料种类匹配
-                if(line.includes('燃料') || line.includes('枝桠') || line.includes('杨树') || line.includes('杉木') || line.includes('树枝') || line.includes('薪柴') || line.includes('竹枝')) {
-                    // 提取燃料名称
+
+                // 燃料种类
+                if(text.includes('燃料')) {
                     const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
                     for(const f of fuels) {
-                        if(line.includes(f)) {
+                        if(text.includes(f)) {
                             d.fuel = f;
-                            console.log('匹配到燃料:', d.fuel);
                             break;
                         }
                     }
                 }
-                
-                // 日期匹配 (从单号提取 YYYYMMDD)
-                if(line.includes('单号') || line.match(/\d{8}/)) {
-                    const m = line.match(/(\d{4})(\d{2})(\d{2})/);
-                    if(m) {
-                        d.date = `${m[1]}-${m[2]}-${m[3]}`;
-                        console.log('匹配到日期:', d.date);
-                    }
+
+                // 单号/日期
+                if(text.includes('单号')) {
+                    const m = text.match(/(\d{4})(\d{2})(\d{2})/);
+                    if(m) d.date = `${m[1]}-${m[2]}-${m[3]}`;
+                }
+
+                // 毛重
+                if(text.includes('毛重')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) d.gross = parseFloat(nums[nums.length-1]);
+                }
+
+                // 皮重
+                if(text.includes('皮重')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) d.tare = parseFloat(nums[nums.length-1]);
+                }
+
+                // 净重
+                if(text.includes('净重')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) d.net = parseFloat(nums[nums.length-1]);
+                }
+
+                // 扣杂质
+                if(text.includes('杂质')) {
+                    const nums = text.match(/(\d+\.?\d*)/g);
+                    if(nums && nums.length > 0) d.deduct = parseFloat(nums[nums.length-1]);
                 }
             });
-            
+
             // 填充表单
+            if(d.supplier) document.getElementById('f_supplier').value = d.supplier;
             if(d.plate) document.getElementById('f_plate').value = d.plate;
-            if(d.net) document.getElementById('f_net').value = d.net;
-            if(d.gross) document.getElementById('f_gross').value = d.gross;
-            if(d.tare) document.getElementById('f_tare').value = d.tare;
             if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
             if(d.date) document.getElementById('f_date').value = d.date;
+            if(d.gross) document.getElementById('f_gross').value = d.gross.toFixed(2);
+            if(d.tare) document.getElementById('f_tare').value = d.tare.toFixed(2);
+            if(d.net) document.getElementById('f_net').value = d.net.toFixed(2);
             
             calc();
-            
-            // 如果关键数据没识别到，提示用户
-            if(!d.plate || !d.net) {
-                toast('⚠️ 部分数据未识别，请手动补充');
-            }
         }
 
         function enableManual() {
             document.getElementById('formArea').style.display = 'block';
-            document.getElementById('f_supplier').value = "安乡县顺清秸秆综合利用专业合作社";
             document.getElementById('debugBox').style.display = 'block';
         }
 

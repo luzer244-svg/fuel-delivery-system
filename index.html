@@ -3,61 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>绿色能源货物交付系统 (稳定版)</title>
-    <!-- 使用国内最稳定的 BootCDN 加载 Tesseract.js -->
+    <title>绿色能源货物交付系统 (修复版)</title>
     <script src="https://cdn.bootcdn.net/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
     <style>
         :root { --primary: #2c7be5; --success: #00d97e; --warning: #f6c343; --danger: #e63757; --bg: #f5f7fb; --card: #fff; --text: #12263f; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
         body { background: var(--bg); color: var(--text); padding-bottom: 70px; }
-        
-        /* 导航栏 */
         .nav { position: fixed; bottom: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 999; }
         .nav-item { text-align: center; font-size: 12px; color: #6e84a3; flex: 1; cursor: pointer; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
         .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
-
         .page { display: none; padding: 15px; animation: fade 0.3s; }
         .page.active { display: block; }
         @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-
         h1 { font-size: 22px; margin-bottom: 15px; color: var(--text); }
         h3 { font-size: 18px; margin: 15px 0 10px; border-left: 4px solid var(--primary); padding-left: 10px; }
-        
         .card { background: var(--card); border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-        
         .form-group { margin-bottom: 12px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
         input, select { width: 100%; padding: 10px; border: 1px solid #d9e2ef; border-radius: 6px; font-size: 16px; }
         input:focus { border-color: var(--primary); outline: none; }
-
         .btn { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn:active { opacity: 0.9; }
         .btn-success { background: var(--success); }
         .btn-warning { background: var(--warning); color: #333; }
         .btn-danger { background: var(--danger); }
         .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
-
         .upload-box { border: 2px dashed #d9e2ef; padding: 20px; text-align: center; border-radius: 8px; background: #fafbfc; cursor: pointer; }
         #preview { max-width: 100%; margin-top: 10px; border-radius: 6px; display: none; }
-        
         .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 10px auto; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
         .progress { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin: 10px 0; display: none; overflow: hidden; }
         .progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s; }
         .status-text { font-size: 12px; color: #666; text-align: center; margin-top: 5px; display: none; }
-
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; color: #666; }
-        
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 14px; z-index: 1000; display: none; }
+        .debug-box { background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 12px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; display: none; }
+        .debug-title { font-weight: bold; margin-bottom: 5px; color: #666; }
     </style>
 </head>
 <body>
 
-    <!-- 首页：录入 -->
     <div id="page-home" class="page active">
         <h1>📸 过磅单录入</h1>
         
@@ -74,6 +62,12 @@
 
             <button id="btnRec" class="btn" style="display:none" onclick="startOCR()">🚀 开始智能识别</button>
             <button class="btn btn-warning" onclick="enableManual()">✏️ 跳过识别，手动输入</button>
+            
+            <!-- 调试区域：显示识别到的原始文字 -->
+            <div id="debugBox" class="debug-box">
+                <div class="debug-title">📋 识别到的原始文字：</div>
+                <div id="debugText"></div>
+            </div>
         </div>
 
         <div id="formArea" class="card" style="display:none">
@@ -108,7 +102,6 @@
         </div>
     </div>
 
-    <!-- 数据页 -->
     <div id="page-data" class="page">
         <h1>📊 历史记录</h1>
         <div class="card">
@@ -124,21 +117,19 @@
         <button class="btn btn-danger" style="margin-top:10px" onclick="clearData()">🗑️ 清空数据</button>
     </div>
 
-    <!-- 价格页 -->
     <div id="page-price" class="page">
         <h1>💰 价格管理</h1>
         <div class="card" id="priceBox"></div>
         <button class="btn btn-success" onclick="savePrice()">💾 保存价格</button>
     </div>
 
-    <!-- 关于页 -->
     <div id="page-about" class="page">
         <h1>ℹ️ 系统信息</h1>
         <div class="card">
-            <p>版本：v3.0 稳定版</p>
+            <p>版本：v3.1 修复版</p>
             <p>识别引擎：Tesseract.js (本地运行)</p>
             <p>数据存储：手机本地存储</p>
-            <p style="color:green; margin-top:10px">✅ 无需联网即可使用核心功能</p>
+            <p style="color:green; margin-top:10px">✅ 增加识别调试功能</p>
         </div>
     </div>
 
@@ -152,7 +143,6 @@
     <div id="toast" class="toast">提示</div>
 
     <script>
-        // --- 数据初始化 ---
         let prices = JSON.parse(localStorage.getItem('prices')) || [
             {n:"枝桠柴三级", p:202}, {n:"杨树皮一级", p:180}, {n:"杨树皮二级", p:247},
             {n:"杉木树枝一级", p:202}, {n:"杉木树枝二级", p:242}, {n:"干树枝一级", p:298},
@@ -167,7 +157,6 @@
             renderList();
         };
 
-        // --- 页面切换 ---
         function sw(id, el) {
             document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
             document.getElementById('page-'+id).classList.add('active');
@@ -183,7 +172,6 @@
             setTimeout(()=>t.style.display='none', 2000);
         }
 
-        // --- 图片与识别 ---
         function handleFile(e) {
             const f = e.target.files[0];
             if(!f) return;
@@ -194,6 +182,7 @@
                 img.src = ev.target.result;
                 img.style.display = 'block';
                 document.getElementById('btnRec').style.display = 'block';
+                document.getElementById('debugBox').style.display = 'none';
             };
             r.readAsDataURL(f);
         }
@@ -206,6 +195,8 @@
             document.getElementById('loader').style.display = 'block';
             document.getElementById('progress').style.display = 'block';
             document.getElementById('statusText').style.display = 'block';
+            document.getElementById('debugBox').style.display = 'block';
+            document.getElementById('debugText').innerText = '正在识别...';
 
             try {
                 const worker = await Tesseract.createWorker({
@@ -223,12 +214,16 @@
                 const { data: { text } } = await worker.recognize(curImg);
                 await worker.terminate();
                 
+                // 显示识别到的原始文字
+                document.getElementById('debugText').innerText = text;
+                
                 parseText(text);
                 document.getElementById('formArea').style.display = 'block';
-                toast('识别完成，请核对');
+                toast('识别完成，请核对数据');
             } catch(err) {
                 console.error(err);
-                alert('识别出错：' + err.message + '\n建议手动输入');
+                document.getElementById('debugText').innerText = '识别失败：' + err.message;
+                alert('识别出错：' + err.message + '\n请查看下方识别文字，手动输入');
                 enableManual();
             } finally {
                 document.getElementById('loader').style.display = 'none';
@@ -238,33 +233,96 @@
             }
         }
 
+        // 修复后的解析函数 - 更智能的匹配
         function parseText(txt) {
-            const lines = txt.split('\n');
-            let d = {};
+            console.log('原始识别文字:', txt);
+            
+            const lines = txt.split('\n').filter(l => l.trim().length > 0);
+            let d = { plate: '', net: '', gross: '', tare: '', fuel: '', date: '' };
+            
             lines.forEach(l => {
-                if(l.includes('车牌')) { const m=l.match(/湘[A-Z0-9]+/); if(m) d.plate=m[0]; }
-                if(l.includes('净重')) { const m=l.match(/(\d+\.?\d*)/); if(m) d.net=parseFloat(m[1]); }
-                if(l.includes('毛重')) { const m=l.match(/(\d+\.?\d*)/); if(m) d.gross=parseFloat(m[1]); }
-                if(l.includes('皮重')) { const m=l.match(/(\d+\.?\d*)/); if(m) d.tare=parseFloat(m[1]); }
-                if(l.includes('燃料')) d.fuel = l.replace(/.*燃料种类 [:：]?/, '').trim();
-                if(l.includes('单号')) {
-                    const m=l.match(/(\d{4})(\d{2})(\d{2})/);
-                    if(m) d.date = `${m[1]}-${m[2]}-${m[3]}`;
+                const line = l.trim();
+                console.log('处理行:', line);
+                
+                // 车牌号匹配 (湘J + 字母数字)
+                if(line.includes('车牌') || line.match(/湘[A-Z0-9]{5,}/)) {
+                    const m = line.match(/湘[A-Z0-9]{5,}/);
+                    if(m) {
+                        d.plate = m[0];
+                        console.log('匹配到车牌:', d.plate);
+                    }
+                }
+                
+                // 净重匹配 (找"净重"后面的数字)
+                if(line.includes('净重')) {
+                    const m = line.match(/(\d+\.?\d*)/);
+                    if(m) {
+                        d.net = parseFloat(m[1]);
+                        console.log('匹配到净重:', d.net);
+                    }
+                }
+                
+                // 毛重匹配
+                if(line.includes('毛重')) {
+                    const m = line.match(/(\d+\.?\d*)/);
+                    if(m) {
+                        d.gross = parseFloat(m[1]);
+                        console.log('匹配到毛重:', d.gross);
+                    }
+                }
+                
+                // 皮重匹配
+                if(line.includes('皮重')) {
+                    const m = line.match(/(\d+\.?\d*)/);
+                    if(m) {
+                        d.tare = parseFloat(m[1]);
+                        console.log('匹配到皮重:', d.tare);
+                    }
+                }
+                
+                // 燃料种类匹配
+                if(line.includes('燃料') || line.includes('枝桠') || line.includes('杨树') || line.includes('杉木') || line.includes('树枝') || line.includes('薪柴') || line.includes('竹枝')) {
+                    // 提取燃料名称
+                    const fuels = ['枝桠柴三级', '杨树皮一级', '杨树皮二级', '杉木树枝一级', '杉木树枝二级', '干树枝一级', '干树枝二级', '带叶薪柴三级', '竹枝'];
+                    for(const f of fuels) {
+                        if(line.includes(f)) {
+                            d.fuel = f;
+                            console.log('匹配到燃料:', d.fuel);
+                            break;
+                        }
+                    }
+                }
+                
+                // 日期匹配 (从单号提取 YYYYMMDD)
+                if(line.includes('单号') || line.match(/\d{8}/)) {
+                    const m = line.match(/(\d{4})(\d{2})(\d{2})/);
+                    if(m) {
+                        d.date = `${m[1]}-${m[2]}-${m[3]}`;
+                        console.log('匹配到日期:', d.date);
+                    }
                 }
             });
+            
+            // 填充表单
             if(d.plate) document.getElementById('f_plate').value = d.plate;
             if(d.net) document.getElementById('f_net').value = d.net;
             if(d.gross) document.getElementById('f_gross').value = d.gross;
             if(d.tare) document.getElementById('f_tare').value = d.tare;
-            if(d.fuel && document.getElementById('f_fuel').querySelector(`option[value="${d.fuel}"]`)) 
-                document.getElementById('f_fuel').value = d.fuel;
+            if(d.fuel) document.getElementById('f_fuel').value = d.fuel;
             if(d.date) document.getElementById('f_date').value = d.date;
+            
             calc();
+            
+            // 如果关键数据没识别到，提示用户
+            if(!d.plate || !d.net) {
+                toast('⚠️ 部分数据未识别，请手动补充');
+            }
         }
 
         function enableManual() {
             document.getElementById('formArea').style.display = 'block';
             document.getElementById('f_supplier').value = "安乡县顺清秸秆综合利用专业合作社";
+            document.getElementById('debugBox').style.display = 'block';
         }
 
         function calc() {
@@ -274,7 +332,6 @@
             document.getElementById('f_final').value = final.toFixed(2);
         }
 
-        // --- 保存与计算 ---
         function saveData() {
             const plate = document.getElementById('f_plate').value;
             const fuel = document.getElementById('f_fuel').value;
@@ -285,7 +342,7 @@
             const unitPrice = parseFloat(prompt(`输入单价 (默认${priceObj.p}):`, priceObj.p));
             if(isNaN(unitPrice)) return;
 
-            const isZheng = confirm("是郑老板的货吗？\n(是：扣除 50元/吨 运费)");
+            const isZheng = confirm("是郑老板的货吗？\n(是：扣除 50 元/吨 运费)");
             
             let total = finalNet * unitPrice;
             let freight = 0;
@@ -310,13 +367,11 @@
             document.getElementById('preview').style.display = 'none';
             document.getElementById('btnRec').style.display = 'none';
             document.querySelector('.upload-box').style.display = 'block';
-            // 重置表单
             document.getElementById('f_plate').value = '';
             document.getElementById('f_net').value = '';
             sw('data', document.querySelectorAll('.nav-item')[1]);
         }
 
-        // --- 列表与导出 ---
         function renderList() {
             const key = document.getElementById('search').value.toLowerCase();
             const tbody = document.querySelector('#tbl tbody');
@@ -353,7 +408,6 @@
             }
         }
 
-        // --- 价格管理 ---
         function renderPrice() {
             const box = document.getElementById('priceBox');
             box.innerHTML = '';

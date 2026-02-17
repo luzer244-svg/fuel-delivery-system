@@ -487,7 +487,7 @@ function parseOCRResults(wordsResult) {
         }
     }
     document.getElementById('supplier').value = supplierText;
-
+/*
     // 3. 车牌号
     let plate = "";
     for (let item of wordsResult) {
@@ -501,7 +501,24 @@ function parseOCRResults(wordsResult) {
         const plateMatch = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
         if(plateMatch) plate = plateMatch[0];
     }
-    document.getElementById('plateNumber').value = plate;
+    document.getElementById('plateNumber').value = plate;*/
+    // 3. 车牌号 - 增强匹配
+        let plate = "";
+        for (let item of wordsResult) {
+            const text = item.words.trim();
+            if (text.includes('车牌') || text.includes('车号')) {
+                const m = text.match(/湘 [A-Z][A-Z0-9]{4,6}/);
+                if(m) { plate = m[0]; break; }
+                const m2 = text.match(/[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼][A-Z][A-Z0-9]{4,6}/);
+                if(m2) { plate = m2[0]; break; }
+            }
+        }
+        if(!plate) {
+            const plateMatch = fullText.match(/湘 [A-Z][A-Z0-9]{4,6}/);
+            if(plateMatch) plate = plateMatch[0];
+        }
+        document.getElementById('plateNumber').value = plate;
+        console.log('解析车牌:', plate);
     
     // 4. 重量
     const findNumber = (keyword) => {
